@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import 'package:studyflow/config/api_keys.dart';
 
 enum TimerMode { pomodoro, countdown, stopwatch }
 
@@ -214,7 +215,9 @@ class StudyPlan {
   int get progressPercent => (progress * 100).round();
 
   bool get isOverdue =>
-      deadline != null && deadline!.isBefore(DateTime.now()) && status != PlanStatus.completed;
+      deadline != null &&
+      deadline!.isBefore(DateTime.now()) &&
+      status != PlanStatus.completed;
 
   StudyPlan copyWith({
     String? id,
@@ -303,9 +306,9 @@ class AppSettings {
   final bool isDarkMode;
 
   AppSettings({
-    this.openaiApiKey = 'ark-24a7efb1-c9fd-4d79-9da9-ce6f9aa5db22-82c1e',
-    this.openaiBaseUrl = 'https://ark.cn-beijing.volces.com/api/coding/v3',
-    this.openaiModel = 'deepseek-v3.2',
+    this.openaiApiKey = kBuiltInApiKey,
+    this.openaiBaseUrl = kBuiltInBaseUrl,
+    this.openaiModel = kBuiltInModel,
     this.notificationsEnabled = true,
     this.pomodoroWorkMinutes = 25,
     this.pomodoroBreakMinutes = 5,
@@ -343,9 +346,9 @@ class AppSettings {
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
-        openaiApiKey: json['openaiApiKey'] as String? ?? 'ark-24a7efb1-c9fd-4d79-9da9-ce6f9aa5db22-82c1e',
-        openaiBaseUrl: json['openaiBaseUrl'] as String? ?? 'https://ark.cn-beijing.volces.com/api/coding/v3',
-        openaiModel: json['openaiModel'] as String? ?? 'deepseek-v3.2',
+        openaiApiKey: json['openaiApiKey'] as String? ?? kBuiltInApiKey,
+        openaiBaseUrl: json['openaiBaseUrl'] as String? ?? kBuiltInBaseUrl,
+        openaiModel: json['openaiModel'] as String? ?? kBuiltInModel,
         notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
         pomodoroWorkMinutes: json['pomodoroWorkMinutes'] as int? ?? 25,
         pomodoroBreakMinutes: json['pomodoroBreakMinutes'] as int? ?? 5,
@@ -384,7 +387,8 @@ class ChatMessage {
         createdAt: DateTime.parse(json['createdAt'] as String),
         planSuggestions: json['planSuggestions'] != null
             ? (json['planSuggestions'] as List)
-                .map((e) => AIPlanSuggestion.fromJson(e as Map<String, dynamic>))
+                .map(
+                    (e) => AIPlanSuggestion.fromJson(e as Map<String, dynamic>))
                 .toList()
             : null,
       );
@@ -417,7 +421,8 @@ class AIPlanSuggestion {
         'priority': priority,
       };
 
-  factory AIPlanSuggestion.fromJson(Map<String, dynamic> json) => AIPlanSuggestion(
+  factory AIPlanSuggestion.fromJson(Map<String, dynamic> json) =>
+      AIPlanSuggestion(
         title: json['title'] as String,
         description: json['description'] as String?,
         subjectName: json['subjectName'] as String,

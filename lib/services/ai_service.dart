@@ -1,17 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 import 'package:dio/dio.dart';
-import 'package:studyflow/models/models.dart';
+import 'package:studyflow/config/api_keys.dart';
 import 'package:studyflow/services/memory_service.dart';
 import 'package:uuid/uuid.dart';
 
 class AIService {
   final Dio _dio = Dio();
-  // 将 API Key 写死在这里
-  String? _apiKey = 'ark-24a7efb1-c9fd-4d79-9da9-ce6f9aa5db22-82c1e';
-  String? _baseUrl;
-  String _model = 'deepseek-v3.2';
+  String? _apiKey = kBuiltInApiKey.isEmpty ? null : kBuiltInApiKey;
+  String? _baseUrl = kBuiltInBaseUrl.isEmpty ? null : kBuiltInBaseUrl;
+  String _model = kBuiltInModel;
   final MemoryService _memoryService = MemoryService();
 
   AIService() {
@@ -42,7 +40,8 @@ class AIService {
 
   bool get isConfigured => _apiKey != null && _apiKey!.isNotEmpty;
 
-  Future<String> sendMessage(String message, {List<Map<String, String>>? history, bool useMemory = true}) async {
+  Future<String> sendMessage(String message,
+      {List<Map<String, String>>? history, bool useMemory = true}) async {
     if (!isConfigured) {
       throw Exception('API Key 未配置，请在设置中配置 API Key');
     }
@@ -81,14 +80,17 @@ class AIService {
         final base = _baseUrl!.endsWith('/')
             ? _baseUrl!.substring(0, _baseUrl!.length - 1)
             : _baseUrl!;
-        if (base.contains('/v3') || base.contains('/v4') || base.contains('/v1')) {
+        if (base.contains('/v3') ||
+            base.contains('/v4') ||
+            base.contains('/v1')) {
           apiUrl = '$base/chat/completions';
         } else {
           apiUrl = '$base/v1/chat/completions';
         }
       } else {
         // 强制使用指定的 coding 大模型地址
-        apiUrl = 'https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions';
+        apiUrl =
+            'https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions';
       }
 
       final response = await _dio.post(
@@ -126,9 +128,11 @@ class AIService {
   }
 
   /// 流式发送消息，逐 token 返回
-  Stream<String> sendMessageStream(String message, {List<Map<String, String>>? history, bool useMemory = true}) {
+  Stream<String> sendMessageStream(String message,
+      {List<Map<String, String>>? history, bool useMemory = true}) {
     final controller = StreamController<String>();
-    _doSendMessageStream(controller, message, history: history, useMemory: useMemory);
+    _doSendMessageStream(controller, message,
+        history: history, useMemory: useMemory);
     return controller.stream;
   }
 
@@ -175,13 +179,16 @@ class AIService {
         final base = _baseUrl!.endsWith('/')
             ? _baseUrl!.substring(0, _baseUrl!.length - 1)
             : _baseUrl!;
-        if (base.contains('/v3') || base.contains('/v4') || base.contains('/v1')) {
+        if (base.contains('/v3') ||
+            base.contains('/v4') ||
+            base.contains('/v1')) {
           apiUrl = '$base/chat/completions';
         } else {
           apiUrl = '$base/v1/chat/completions';
         }
       } else {
-        apiUrl = 'https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions';
+        apiUrl =
+            'https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions';
       }
 
       final response = await _dio.post(
@@ -256,7 +263,8 @@ class AIService {
   }
 
   /// 保存对话记忆
-  Future<void> _saveConversationMemory(String userMessage, String aiReply) async {
+  Future<void> _saveConversationMemory(
+      String userMessage, String aiReply) async {
     try {
       // 保存用户消息
       await _memoryService.addMemory(MemoryItem(
@@ -385,7 +393,12 @@ ${additionalInfo != null ? '- 当前进度/补充说明：$additionalInfo' : ''}
     required String aiResponse,
   }) async {
     if (!isConfigured) {
-      return {'isPlan': false, 'summary': '', 'plans': <dynamic>[], 'rawResponse': ''};
+      return {
+        'isPlan': false,
+        'summary': '',
+        'plans': <dynamic>[],
+        'rawResponse': ''
+      };
     }
 
     final prompt = '''分析下面的对话，判断用户是否在请求制定学习/复习/备考计划。
@@ -411,7 +424,12 @@ $aiResponse
 
     // 模型判断为非计划请求
     if (trimmed.toUpperCase() == 'NO' || trimmed == '"NO"') {
-      return {'isPlan': false, 'summary': '', 'plans': <dynamic>[], 'rawResponse': ''};
+      return {
+        'isPlan': false,
+        'summary': '',
+        'plans': <dynamic>[],
+        'rawResponse': ''
+      };
     }
 
     // 尝试解析 JSON
