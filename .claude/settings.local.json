@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter clean *)",
+      "Bash(/home/ltk/flutter/bin/flutter clean *)",
+      "Bash(/home/ltk/flutter/bin/flutter pub *)",
+      "Bash(/home/ltk/flutter/bin/flutter *)",
+      "Bash(apt-cache search *)",
+      "Read(//opt/**)",
+      "Read(//etc/**)",
+      "Bash(dnf install *)",
+      "Bash(sudo dnf *)",
+      "Bash(export JAVA_HOME=/usr/lib/jvm/java-17-openjdk)",
+      "WebFetch(domain:www.volcengine.com)",
+      "WebSearch",
+      "Bash(flutter build *)",
+      "Bash(cmd.exe /c \"flutter build apk --release\")",
+      "Bash(powershell.exe -Command \"flutter build apk --release\")"
+    ]
+  }
+}

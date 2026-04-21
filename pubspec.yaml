@@ -1,0 +1,68 @@
+name: studyflow
+description: "StudyFlow - 智能学习计时与规划应用"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # 状态管理
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # 数据库
+  drift: ^2.22.1
+  sqlite3_flutter_libs: ^0.5.28
+
+  # 网络
+  dio: ^5.7.0
+
+  # 图表
+  fl_chart: ^0.69.0
+
+  # 后台服务
+  flutter_background_service: ^5.1.0
+  flutter_background_service_android: ^6.2.7
+
+  # 通知
+  flutter_local_notifications: ^18.0.1
+
+  # 权限
+  permission_handler: ^11.3.1
+
+  # 存储
+  shared_preferences: ^2.3.3
+
+  # 日期
+  intl: ^0.20.1
+
+  # UUID
+  uuid: ^4.5.1
+
+  # JSON
+  json_annotation: ^4.9.0
+
+  # 路径
+  path_provider: ^2.1.5
+  path: ^1.9.0
+  flutter_markdown: ^0.7.7+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+  # 代码生成
+  build_runner: ^2.4.13
+  drift_dev: ^2.22.1
+  riverpod_generator: ^2.6.2
+  json_serializable: ^6.8.0
+
+flutter:
+  uses-material-design: true
