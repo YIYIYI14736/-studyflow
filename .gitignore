@@ -46,3 +46,6 @@ app.*.map.json
 
 # Compiled APK files
 *.apk
+
+# Claude AI local config
+.claude/
