@@ -17,6 +17,9 @@ final aiServiceProvider = Provider<AIService>((ref) {
     apiKey: settings.openaiApiKey,
     baseUrl: settings.openaiBaseUrl,
     model: settings.openaiModel,
+    webSearchEnabled: settings.webSearchEnabled,
+    searchApiKey: settings.searchApiKey,
+    searchProvider: settings.searchProvider,
   );
   return service;
 });
@@ -70,6 +73,31 @@ class _AIScreenState extends ConsumerState<AIScreen> {
         title: const Text('AI 助手'),
         actions: [
           IconButton(
+            icon: Icon(
+              Icons.travel_explore,
+              color: settings.webSearchEnabled
+                  ? Theme.of(context).colorScheme.primary
+                  : null,
+            ),
+            tooltip: settings.webSearchEnabled ? '联网搜索已开启' : '联网搜索已关闭',
+            onPressed: () {
+              final willEnable = !settings.webSearchEnabled;
+              ref
+                  .read(settingsProvider.notifier)
+                  .setWebSearchEnabled(willEnable);
+              if (willEnable &&
+                  (settings.searchApiKey == null ||
+                      settings.searchApiKey!.isEmpty)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('联网搜索需要配置搜索 API Key，请在设置→联网搜索中填写'),
+                    duration: Duration(seconds: 4),
+                  ),
+                );
+              }
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.psychology),
             tooltip: '记忆管理',
             onPressed: () => _showMemoryPanel(),
@@ -91,6 +119,43 @@ class _AIScreenState extends ConsumerState<AIScreen> {
               child: messages.isEmpty
                   ? _buildQuickActions()
                   : _buildChatList(messages),
+            ),
+          if (settings.webSearchEnabled &&
+              settings.openaiApiKey != null &&
+              settings.openaiApiKey!.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              color: (settings.searchApiKey != null &&
+                      settings.searchApiKey!.isNotEmpty)
+                  ? Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.3)
+                  : Theme.of(context)
+                      .colorScheme
+                      .errorContainer
+                      .withValues(alpha: 0.3),
+              child: Row(
+                children: [
+                  Icon(Icons.travel_explore,
+                      size: 14,
+                      color: (settings.searchApiKey != null &&
+                              settings.searchApiKey!.isNotEmpty)
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.error),
+                  const SizedBox(width: 4),
+                  (settings.searchApiKey != null &&
+                          settings.searchApiKey!.isNotEmpty)
+                      ? Text('联网搜索已开启 · AI 将先搜索网络再回答',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.primary))
+                      : Text('联网搜索未生效 · 请先在设置中配置搜索 API Key',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.error)),
+                ],
+              ),
             ),
           _buildInputArea(),
         ],
@@ -131,7 +196,8 @@ class _AIScreenState extends ConsumerState<AIScreen> {
           children: [
             const Icon(Icons.smart_toy, size: 64, color: Colors.blue),
             const SizedBox(height: 16),
-            const Text('AI 学习助手', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text('AI 学习助手',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 32),
             Wrap(
               spacing: 8,
@@ -208,7 +274,8 @@ class _AIScreenState extends ConsumerState<AIScreen> {
               decoration: const InputDecoration(
                 hintText: '输入问题...',
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               maxLines: null,
               textInputAction: TextInputAction.send,
@@ -259,13 +326,22 @@ class _AIScreenState extends ConsumerState<AIScreen> {
 
     // 添加用户消息
     ref.read(chatMessagesProvider.notifier).update((state) => [
-      ...state,
-      ChatMessage(content: userDisplayText, isUser: true),
-    ]);
+          ...state,
+          ChatMessage(content: userDisplayText, isUser: true),
+        ]);
 
     // 创建占位 AI 消息并记录其 ID，后续用 ID 定位更新，避免多消息并发时用 state.last 串位
-    final placeholder = ChatMessage(content: '', isUser: false);
-    ref.read(chatMessagesProvider.notifier).update((state) => [...state, placeholder]);
+    // 如果联网搜索已开启且已配置，在占位消息中显示搜索状态
+    final searchSettings = ref.read(settingsProvider);
+    final isSearchActive = searchSettings.webSearchEnabled &&
+        aiService.webSearchService.isConfigured;
+    final placeholder = ChatMessage(
+      content: isSearchActive ? '🔍 正在搜索网络...' : '',
+      isUser: false,
+    );
+    ref
+        .read(chatMessagesProvider.notifier)
+        .update((state) => [...state, placeholder]);
 
     setState(() => _isLoading = true);
 
@@ -276,7 +352,8 @@ class _AIScreenState extends ConsumerState<AIScreen> {
         // 按 ID 更新 AI 消息，比 state.last 更安全
         ref.read(chatMessagesProvider.notifier).update((state) => state
             .map((m) => m.id == placeholder.id
-                ? ChatMessage(id: placeholder.id, content: fullContent, isUser: false)
+                ? ChatMessage(
+                    id: placeholder.id, content: fullContent, isUser: false)
                 : m)
             .toList());
         if (_scrollController.hasClients) {
@@ -295,17 +372,17 @@ class _AIScreenState extends ConsumerState<AIScreen> {
       }
     } catch (e) {
       ref.read(chatMessagesProvider.notifier).update((state) => state.map((m) {
-        if (m.id == placeholder.id) {
-          return ChatMessage(
-            id: placeholder.id,
-            content: fullContent.isEmpty
-                ? '错误: $e'
-                : '$fullContent\n\n---\n⚠️ 请求中断: $e',
-            isUser: false,
-          );
-        }
-        return m;
-      }).toList());
+            if (m.id == placeholder.id) {
+              return ChatMessage(
+                id: placeholder.id,
+                content: fullContent.isEmpty
+                    ? '错误: $e'
+                    : '$fullContent\n\n---\n⚠️ 请求中断: $e',
+                isUser: false,
+              );
+            }
+            return m;
+          }).toList());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -336,8 +413,10 @@ class _AIScreenState extends ConsumerState<AIScreen> {
         final map = p as Map<String, dynamic>;
         int targetMinutes = 120;
         final tv = map['targetMinutes'];
-        if (tv is int) targetMinutes = tv;
-        else if (tv is String) targetMinutes = int.tryParse(tv) ?? 120;
+        if (tv is int)
+          targetMinutes = tv;
+        else if (tv is String)
+          targetMinutes = int.tryParse(tv) ?? 120;
         else if (tv is double) targetMinutes = tv.toInt();
 
         DateTime? deadline;
@@ -358,17 +437,17 @@ class _AIScreenState extends ConsumerState<AIScreen> {
 
       // 按 ID 找到对应 AI 消息，追加提示文字和计划建议
       ref.read(chatMessagesProvider.notifier).update((state) => state.map((m) {
-        if (m.id == messageId && !m.isUser) {
-          return ChatMessage(
-            id: m.id,
-            content:
-                '${m.content.trimRight()}\n\n---\n💡 已为你生成 ${suggestions.length} 个学习计划，点击下方按钮可一键导入。',
-            isUser: false,
-            planSuggestions: suggestions,
-          );
-        }
-        return m;
-      }).toList());
+            if (m.id == messageId && !m.isUser) {
+              return ChatMessage(
+                id: m.id,
+                content:
+                    '${m.content.trimRight()}\n\n---\n💡 已为你生成 ${suggestions.length} 个学习计划，点击下方按钮可一键导入。',
+                isUser: false,
+                planSuggestions: suggestions,
+              );
+            }
+            return m;
+          }).toList());
 
       if (_scrollController.hasClients) {
         _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
@@ -414,7 +493,9 @@ class _AIScreenState extends ConsumerState<AIScreen> {
       content: '请帮我制定 $examName 的学习计划',
       isUser: true,
     );
-    ref.read(chatMessagesProvider.notifier).update((state) => [...state, userMessage]);
+    ref
+        .read(chatMessagesProvider.notifier)
+        .update((state) => [...state, userMessage]);
 
     setState(() => _isLoading = true);
 
@@ -475,11 +556,15 @@ class _AIScreenState extends ConsumerState<AIScreen> {
         isUser: false,
         planSuggestions: plans,
       );
-      ref.read(chatMessagesProvider.notifier).update((state) => [...state, aiMessage]);
+      ref
+          .read(chatMessagesProvider.notifier)
+          .update((state) => [...state, aiMessage]);
       await _saveMemories();
     } catch (e) {
       final errorMessage = ChatMessage(content: '错误: $e', isUser: false);
-      ref.read(chatMessagesProvider.notifier).update((state) => [...state, errorMessage]);
+      ref
+          .read(chatMessagesProvider.notifier)
+          .update((state) => [...state, errorMessage]);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -489,20 +574,24 @@ class _AIScreenState extends ConsumerState<AIScreen> {
 
   Future<void> _analyzeStudyData() async {
     final now = DateTime.now();
-    final todayMinutes = ref.read(sessionsProvider.notifier).getTotalMinutesForDate(now);
+    final todayMinutes =
+        ref.read(sessionsProvider.notifier).getTotalMinutesForDate(now);
 
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
     int weekMinutes = 0;
     for (int i = 0; i < 7; i++) {
       final date = weekStart.add(Duration(days: i));
-      weekMinutes += ref.read(sessionsProvider.notifier).getTotalMinutesForDate(date);
+      weekMinutes +=
+          ref.read(sessionsProvider.notifier).getTotalMinutesForDate(date);
     }
 
-    final distribution = ref.read(sessionsProvider.notifier).getSubjectDistributionForDate(now);
+    final distribution =
+        ref.read(sessionsProvider.notifier).getSubjectDistributionForDate(now);
     final dailyMinutes = <int>[];
     for (int i = 6; i >= 0; i--) {
       final date = now.subtract(Duration(days: i));
-      dailyMinutes.add(ref.read(sessionsProvider.notifier).getTotalMinutesForDate(date));
+      dailyMinutes.add(
+          ref.read(sessionsProvider.notifier).getTotalMinutesForDate(date));
     }
 
     final prompt = '请分析我的学习数据并给出建议：\n\n'
@@ -555,14 +644,16 @@ class _AIScreenState extends ConsumerState<AIScreen> {
                             const SnackBar(content: Text('记忆已清除')),
                           );
                         },
-                        child: const Text('清除全部', style: TextStyle(color: Colors.red)),
+                        child: const Text('清除全部',
+                            style: TextStyle(color: Colors.red)),
                       ),
                     ],
                   ),
                 ],
               ),
               const Divider(),
-              Text('共 ${memories.length} 条记忆', style: Theme.of(context).textTheme.bodySmall),
+              Text('共 ${memories.length} 条记忆',
+                  style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 8),
               Expanded(
                 child: memories.isEmpty
@@ -570,11 +661,14 @@ class _AIScreenState extends ConsumerState<AIScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.psychology_outlined, size: 64, color: Colors.grey),
+                            Icon(Icons.psychology_outlined,
+                                size: 64, color: Colors.grey),
                             SizedBox(height: 16),
                             Text('还没有记忆', style: TextStyle(color: Colors.grey)),
                             SizedBox(height: 8),
-                            Text('AI 会自动记住对话中的重要信息', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                            Text('AI 会自动记住对话中的重要信息',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 12)),
                           ],
                         ),
                       )
@@ -653,7 +747,8 @@ class _QuickActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton.icon( // 使用 ElevatedButton 或 OutlinedButton 更大更容易点击且有明显反馈
+    return ElevatedButton.icon(
+      // 使用 ElevatedButton 或 OutlinedButton 更大更容易点击且有明显反馈
       icon: Icon(icon, size: 18),
       label: Text(label),
       onPressed: onTap,
@@ -700,22 +795,23 @@ class _ChatBubble extends ConsumerWidget {
                 : MarkdownBody(
                     data: message.content,
                     selectable: true,
-                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                        .copyWith(
                       p: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                     ),
                   ),
             // 如果有计划建议，显示导入按钮
-            if (message.planSuggestions != null && message.planSuggestions!.isNotEmpty) ...[
+            if (message.planSuggestions != null &&
+                message.planSuggestions!.isNotEmpty) ...[
               const SizedBox(height: 12),
               const Divider(),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Icon(Icons.assignment_add,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.primary),
+                      size: 16, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 4),
                   Text(
                     'AI 生成了 ${message.planSuggestions!.length} 个计划',
@@ -786,12 +882,19 @@ class _ChatBubble extends ConsumerWidget {
     );
   }
 
-  void _doImport(BuildContext context, WidgetRef ref, List<Subject> subjects, List<AIPlanSuggestion> plans) async {
+  void _doImport(BuildContext context, WidgetRef ref, List<Subject> subjects,
+      List<AIPlanSuggestion> plans) async {
     int imported = 0;
     int createdSubjects = 0;
     final colors = [
-      Colors.blue, Colors.red, Colors.green, Colors.orange,
-      Colors.purple, Colors.teal, Colors.pink, Colors.indigo,
+      Colors.blue,
+      Colors.red,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal,
+      Colors.pink,
+      Colors.indigo,
     ];
     int colorIndex = 0;
 
@@ -803,13 +906,16 @@ class _ChatBubble extends ConsumerWidget {
       Subject? subject;
 
       // 1. 先尝试精确匹配
-      subject = currentSubjects.where((s) => s.name == plan.subjectName).firstOrNull;
+      subject =
+          currentSubjects.where((s) => s.name == plan.subjectName).firstOrNull;
 
       // 2. 如果没有精确匹配，尝试模糊匹配（包含关系）
       if (subject == null) {
-        subject = currentSubjects.where((s) =>
-          s.name.contains(plan.subjectName) || plan.subjectName.contains(s.name)
-        ).firstOrNull;
+        subject = currentSubjects
+            .where((s) =>
+                s.name.contains(plan.subjectName) ||
+                plan.subjectName.contains(s.name))
+            .firstOrNull;
       }
 
       // 3. 如果还是没有，创建新科目
@@ -822,7 +928,10 @@ class _ChatBubble extends ConsumerWidget {
         await ref.read(subjectsProvider.notifier).addSubject(newSubject);
         // 重新获取科目列表以获取新添加的科目
         currentSubjects = ref.read(subjectsProvider);
-        subject = currentSubjects.where((s) => s.name == plan.subjectName).firstOrNull ?? newSubject;
+        subject = currentSubjects
+                .where((s) => s.name == plan.subjectName)
+                .firstOrNull ??
+            newSubject;
         createdSubjects++;
       }
 
@@ -834,23 +943,24 @@ class _ChatBubble extends ConsumerWidget {
               : PlanPriority.medium;
 
       await ref.read(plansProvider.notifier).addPlan(
-        StudyPlan(
-          title: plan.title,
-          description: plan.description,
-          subjectId: subject.id,
-          subjectName: subject.name,
-          targetMinutes: plan.targetMinutes,
-          deadline: plan.deadline,
-          priority: priority,
-        ),
-      );
+            StudyPlan(
+              title: plan.title,
+              description: plan.description,
+              subjectId: subject.id,
+              subjectName: subject.name,
+              targetMinutes: plan.targetMinutes,
+              deadline: plan.deadline,
+              priority: priority,
+            ),
+          );
       imported++;
     }
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('成功导入 $imported 个计划${createdSubjects > 0 ? "，创建了 $createdSubjects 个新科目" : ""}'),
+          content: Text(
+              '成功导入 $imported 个计划${createdSubjects > 0 ? "，创建了 $createdSubjects 个新科目" : ""}'),
           action: SnackBarAction(
             label: '查看',
             onPressed: () {
@@ -879,7 +989,8 @@ class _PlanGeneratorSheet extends ConsumerStatefulWidget {
   const _PlanGeneratorSheet({required this.onGenerate});
 
   @override
-  ConsumerState<_PlanGeneratorSheet> createState() => _PlanGeneratorSheetState();
+  ConsumerState<_PlanGeneratorSheet> createState() =>
+      _PlanGeneratorSheetState();
 }
 
 class _PlanGeneratorSheetState extends ConsumerState<_PlanGeneratorSheet> {
@@ -1015,7 +1126,8 @@ class _PlanGeneratorSheetState extends ConsumerState<_PlanGeneratorSheet> {
         .where((s) => s.isNotEmpty)
         .toList();
     final dailyHours = _dailyHours;
-    final additionalInfo = _infoController.text.isEmpty ? null : _infoController.text;
+    final additionalInfo =
+        _infoController.text.isEmpty ? null : _infoController.text;
 
     // 捕获回调引用（避免 dispose 后访问 widget）
     final onGenerate = widget.onGenerate;

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:studyflow/config/api_keys.dart';
 import 'package:studyflow/services/memory_service.dart';
+import 'package:studyflow/services/web_search_service.dart';
 import 'package:uuid/uuid.dart';
 
 class AIService {
@@ -11,6 +12,8 @@ class AIService {
   String? _baseUrl = kBuiltInBaseUrl.isEmpty ? null : kBuiltInBaseUrl;
   String _model = kBuiltInModel;
   final MemoryService _memoryService = MemoryService();
+  final WebSearchService _webSearchService = WebSearchService();
+  bool _webSearchEnabled = false;
 
   AIService() {
     // 初始化时同时赋值给记忆服务
@@ -19,10 +22,17 @@ class AIService {
 
   MemoryService get memoryService => _memoryService;
 
+  WebSearchService get webSearchService => _webSearchService;
+
+  bool get webSearchEnabled => _webSearchEnabled;
+
   void configure({
     String? apiKey,
     String? baseUrl,
     String? model,
+    bool? webSearchEnabled,
+    String? searchApiKey,
+    String? searchProvider,
   }) {
     // 只有外部传了新的且不为空的 key，才替换掉写死的 key
     if (apiKey != null && apiKey.trim().isNotEmpty) {
@@ -36,12 +46,34 @@ class AIService {
       apiKey: _apiKey,
       baseUrl: baseUrl,
     );
+
+    // 同步配置联网搜索
+    if (webSearchEnabled != null) _webSearchEnabled = webSearchEnabled;
+    if (searchApiKey != null && searchApiKey.trim().isNotEmpty) {
+      _webSearchService.configure(apiKey: searchApiKey);
+    }
+    if (searchProvider != null) {
+      SearchProvider provider;
+      switch (searchProvider) {
+        case 'bing':
+          provider = SearchProvider.bing;
+          break;
+        case 'custom':
+          provider = SearchProvider.custom;
+          break;
+        default:
+          provider = SearchProvider.tavily;
+      }
+      _webSearchService.configure(provider: provider);
+    }
   }
 
   bool get isConfigured => _apiKey != null && _apiKey!.isNotEmpty;
 
   Future<String> sendMessage(String message,
-      {List<Map<String, String>>? history, bool useMemory = true}) async {
+      {List<Map<String, String>>? history,
+      bool useMemory = true,
+      bool useWebSearch = true}) async {
     if (!isConfigured) {
       throw Exception('API Key 未配置，请在设置中配置 API Key');
     }
@@ -61,6 +93,19 @@ class AIService {
         }
       } catch (e) {
         // 记忆检索失败不影响主流程
+      }
+    }
+
+    // 如果启用联网搜索，搜索相关信息并注入上下文
+    if (useWebSearch && _webSearchEnabled && _webSearchService.isConfigured) {
+      try {
+        final searchContext =
+            await _webSearchService.buildSearchContext(message);
+        if (searchContext.isNotEmpty) {
+          systemPrompt = '$systemPrompt\n\n$searchContext';
+        }
+      } catch (e) {
+        // 搜索失败不影响主流程
       }
     }
 
@@ -129,10 +174,12 @@ class AIService {
 
   /// 流式发送消息，逐 token 返回
   Stream<String> sendMessageStream(String message,
-      {List<Map<String, String>>? history, bool useMemory = true}) {
+      {List<Map<String, String>>? history,
+      bool useMemory = true,
+      bool useWebSearch = true}) {
     final controller = StreamController<String>();
     _doSendMessageStream(controller, message,
-        history: history, useMemory: useMemory);
+        history: history, useMemory: useMemory, useWebSearch: useWebSearch);
     return controller.stream;
   }
 
@@ -141,6 +188,7 @@ class AIService {
     String message, {
     List<Map<String, String>>? history,
     bool useMemory = true,
+    bool useWebSearch = true,
   }) async {
     if (!isConfigured) {
       controller.addError(Exception('API Key 未配置，请在设置中配置 API Key'));
@@ -163,6 +211,19 @@ class AIService {
         }
       } catch (e) {
         // 记忆检索失败不影响主流程
+      }
+    }
+
+    // 如果启用联网搜索，搜索相关信息并注入上下文
+    if (useWebSearch && _webSearchEnabled && _webSearchService.isConfigured) {
+      try {
+        final searchContext =
+            await _webSearchService.buildSearchContext(message);
+        if (searchContext.isNotEmpty) {
+          systemPrompt = '$systemPrompt\n\n$searchContext';
+        }
+      } catch (e) {
+        // 搜索失败不影响主流程
       }
     }
 

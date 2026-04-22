@@ -304,6 +304,9 @@ class AppSettings {
   final int pomodoroWorkMinutes;
   final int pomodoroBreakMinutes;
   final bool isDarkMode;
+  final bool webSearchEnabled;
+  final String? searchApiKey;
+  final String searchProvider; // 'tavily', 'bing', 'custom'
 
   AppSettings({
     this.openaiApiKey = kBuiltInApiKey,
@@ -313,6 +316,9 @@ class AppSettings {
     this.pomodoroWorkMinutes = 25,
     this.pomodoroBreakMinutes = 5,
     this.isDarkMode = false,
+    this.webSearchEnabled = false,
+    this.searchApiKey = kBuiltInSearchApiKey,
+    this.searchProvider = kBuiltInSearchProvider,
   });
 
   AppSettings copyWith({
@@ -323,6 +329,9 @@ class AppSettings {
     int? pomodoroWorkMinutes,
     int? pomodoroBreakMinutes,
     bool? isDarkMode,
+    bool? webSearchEnabled,
+    String? searchApiKey,
+    String? searchProvider,
   }) {
     return AppSettings(
       openaiApiKey: openaiApiKey ?? this.openaiApiKey,
@@ -332,6 +341,9 @@ class AppSettings {
       pomodoroWorkMinutes: pomodoroWorkMinutes ?? this.pomodoroWorkMinutes,
       pomodoroBreakMinutes: pomodoroBreakMinutes ?? this.pomodoroBreakMinutes,
       isDarkMode: isDarkMode ?? this.isDarkMode,
+      webSearchEnabled: webSearchEnabled ?? this.webSearchEnabled,
+      searchApiKey: searchApiKey ?? this.searchApiKey,
+      searchProvider: searchProvider ?? this.searchProvider,
     );
   }
 
@@ -343,6 +355,9 @@ class AppSettings {
         'pomodoroWorkMinutes': pomodoroWorkMinutes,
         'pomodoroBreakMinutes': pomodoroBreakMinutes,
         'isDarkMode': isDarkMode,
+        'webSearchEnabled': webSearchEnabled,
+        'searchApiKey': searchApiKey,
+        'searchProvider': searchProvider,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -353,6 +368,10 @@ class AppSettings {
         pomodoroWorkMinutes: json['pomodoroWorkMinutes'] as int? ?? 25,
         pomodoroBreakMinutes: json['pomodoroBreakMinutes'] as int? ?? 5,
         isDarkMode: json['isDarkMode'] as bool? ?? false,
+        webSearchEnabled: json['webSearchEnabled'] as bool? ?? false,
+        searchApiKey: json['searchApiKey'] as String? ?? kBuiltInSearchApiKey,
+        searchProvider:
+            json['searchProvider'] as String? ?? kBuiltInSearchProvider,
       );
 }
 

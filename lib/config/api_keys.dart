@@ -6,3 +6,7 @@ const String kBuiltInApiKey = '';
 const String kBuiltInBaseUrl =
     'https://ark.cn-beijing.volces.com/api/coding/v3';
 const String kBuiltInModel = 'deepseek-v3.2';
+
+// 联网搜索 API（Tavily）
+const String kBuiltInSearchApiKey = '';
+const String kBuiltInSearchProvider = 'tavily';

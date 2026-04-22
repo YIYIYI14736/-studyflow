@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:studyflow/providers/providers.dart';
+import 'package:studyflow/config/api_keys.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -13,14 +14,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _apiKeyController;
   late TextEditingController _baseUrlController;
   late TextEditingController _modelController;
+  late TextEditingController _searchApiKeyController;
 
   @override
   void initState() {
     super.initState();
     final settings = ref.read(settingsProvider);
-    _apiKeyController = TextEditingController(text: settings.openaiApiKey ?? '');
-    _baseUrlController = TextEditingController(text: settings.openaiBaseUrl ?? '');
+    _apiKeyController =
+        TextEditingController(text: settings.openaiApiKey ?? '');
+    _baseUrlController =
+        TextEditingController(text: settings.openaiBaseUrl ?? '');
     _modelController = TextEditingController(text: settings.openaiModel);
+    _searchApiKeyController =
+        TextEditingController(text: settings.searchApiKey ?? '');
   }
 
   @override
@@ -28,6 +34,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _apiKeyController.dispose();
     _baseUrlController.dispose();
     _modelController.dispose();
+    _searchApiKeyController.dispose();
     super.dispose();
   }
 
@@ -67,6 +74,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: () => _showModelSelector(settings.openaiModel),
           ),
           const Divider(),
+          _buildSectionHeader('联网搜索'),
+          SwitchListTile(
+            secondary: const Icon(Icons.travel_explore),
+            title: const Text('启用联网搜索'),
+            subtitle: const Text('AI 回答前先搜索网络，获取最新信息'),
+            value: settings.webSearchEnabled,
+            onChanged: (value) {
+              ref.read(settingsProvider.notifier).setWebSearchEnabled(value);
+              if (value &&
+                  (settings.searchApiKey == null ||
+                      settings.searchApiKey!.isEmpty)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('联网搜索需要配置搜索 API Key，请在下方「搜索 API Key」中填写'),
+                    duration: Duration(seconds: 4),
+                  ),
+                );
+              }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.key),
+            title: const Text('搜索 API Key'),
+            subtitle: Text(
+              settings.searchApiKey != null && settings.searchApiKey!.isNotEmpty
+                  ? (settings.searchApiKey == kBuiltInSearchApiKey
+                      ? '已配置（内置 Key）'
+                      : '已配置（自定义 Key）')
+                  : '未配置',
+            ),
+            onTap: () => _showEditDialog(
+              '搜索 API Key',
+              _searchApiKeyController,
+              (value) =>
+                  ref.read(settingsProvider.notifier).setSearchApiKey(value),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.search),
+            title: const Text('搜索服务提供商'),
+            subtitle: Text(_getSearchProviderName(settings.searchProvider)),
+            onTap: () => _showSearchProviderSelector(settings.searchProvider),
+          ),
+          const Divider(),
           _buildSectionHeader('番茄钟设置'),
           ListTile(
             leading: const Icon(Icons.timer),
@@ -80,7 +131,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 max: 60,
                 divisions: 9,
                 onChanged: (value) {
-                  ref.read(settingsProvider.notifier).setPomodoroWorkMinutes(value.round());
+                  ref
+                      .read(settingsProvider.notifier)
+                      .setPomodoroWorkMinutes(value.round());
                 },
               ),
             ),
@@ -97,7 +150,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 max: 30,
                 divisions: 9,
                 onChanged: (value) {
-                  ref.read(settingsProvider.notifier).setPomodoroBreakMinutes(value.round());
+                  ref
+                      .read(settingsProvider.notifier)
+                      .setPomodoroBreakMinutes(value.round());
                 },
               ),
             ),
@@ -110,7 +165,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: const Text('计时结束时发送通知'),
             value: settings.notificationsEnabled,
             onChanged: (value) {
-              ref.read(settingsProvider.notifier).setNotificationsEnabled(value);
+              ref
+                  .read(settingsProvider.notifier)
+                  .setNotificationsEnabled(value);
             },
           ),
           const Divider(),
@@ -165,7 +222,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showEditDialog(String title, TextEditingController controller, Function(String?) onSave) {
+  void _showEditDialog(String title, TextEditingController controller,
+      Function(String?) onSave) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -197,9 +255,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _showBaseUrlSelector(String? currentUrl) {
     final presets = [
-      {'name': '火山方舟 (推荐)', 'url': 'https://ark.cn-beijing.volces.com/api/coding/v3'},
+      {
+        'name': '火山方舟 (推荐)',
+        'url': 'https://ark.cn-beijing.volces.com/api/coding/v3'
+      },
       {'name': 'OpenAI', 'url': 'https://api.openai.com/v1'},
-      {'name': '阿里云通义', 'url': 'https://dashscope.aliyuncs.com/compatible-mode/v1'},
+      {
+        'name': '阿里云通义',
+        'url': 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+      },
       {'name': '智谱 AI', 'url': 'https://open.bigmodel.cn/api/paas/v4'},
       {'name': 'DeepSeek', 'url': 'https://api.deepseek.com'},
       {'name': 'Moonshot', 'url': 'https://api.moonshot.cn/v1'},
@@ -218,7 +282,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             itemBuilder: (context, index) {
               final preset = presets[index];
               final url = preset['url'] as String?;
-              final isSelected = url == currentUrl || (url == null && currentUrl == null);
+              final isSelected =
+                  url == currentUrl || (url == null && currentUrl == null);
 
               return RadioListTile<String?>(
                 title: Text(preset['name'] as String),
@@ -280,7 +345,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _showEditDialog(
                       '模型名称',
                       _modelController,
-                      (v) => ref.read(settingsProvider.notifier).setModel(v ?? 'deepseek-v3.2'),
+                      (v) => ref
+                          .read(settingsProvider.notifier)
+                          .setModel(v ?? 'deepseek-v3.2'),
                     );
                   },
                 );
@@ -288,13 +355,71 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               final preset = presets[index];
               return RadioListTile<String>(
                 title: Text(preset['name'] as String),
-                subtitle: Text(preset['value'] as String, style: const TextStyle(fontSize: 11)),
+                subtitle: Text(preset['value'] as String,
+                    style: const TextStyle(fontSize: 11)),
                 value: preset['value'] as String,
                 groupValue: currentModel,
                 onChanged: (value) {
                   if (value != null) {
                     ref.read(settingsProvider.notifier).setModel(value);
                     _modelController.text = value;
+                  }
+                  Navigator.pop(context);
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getSearchProviderName(String provider) {
+    switch (provider) {
+      case 'tavily':
+        return 'Tavily（推荐，专为 AI 设计）';
+      case 'bing':
+        return 'Bing Search API';
+      case 'custom':
+        return '自定义';
+      default:
+        return 'Tavily';
+    }
+  }
+
+  void _showSearchProviderSelector(String currentProvider) {
+    final presets = [
+      {
+        'name': 'Tavily（推荐，专为 AI 设计）',
+        'value': 'tavily',
+        'desc': 'https://tavily.com — 免费注册获取 API Key'
+      },
+      {'name': 'Bing Search API', 'value': 'bing', 'desc': '微软 Azure 认知服务'},
+      {'name': '自定义', 'value': 'custom', 'desc': '使用自定义搜索接口'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('选择搜索服务提供商'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: presets.length,
+            itemBuilder: (context, index) {
+              final preset = presets[index];
+              return RadioListTile<String>(
+                title: Text(preset['name'] as String),
+                subtitle: Text(preset['desc'] as String,
+                    style: const TextStyle(fontSize: 11)),
+                value: preset['value'] as String,
+                groupValue: currentProvider,
+                onChanged: (value) {
+                  if (value != null) {
+                    ref
+                        .read(settingsProvider.notifier)
+                        .setSearchProvider(value);
                   }
                   Navigator.pop(context);
                 },

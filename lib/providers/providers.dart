@@ -58,6 +58,18 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
   Future<void> setDarkMode(bool isDark) async {
     await updateSettings(state.copyWith(isDarkMode: isDark));
   }
+
+  Future<void> setWebSearchEnabled(bool enabled) async {
+    await updateSettings(state.copyWith(webSearchEnabled: enabled));
+  }
+
+  Future<void> setSearchApiKey(String? key) async {
+    await updateSettings(state.copyWith(searchApiKey: key));
+  }
+
+  Future<void> setSearchProvider(String provider) async {
+    await updateSettings(state.copyWith(searchProvider: provider));
+  }
 }
 
 final subjectsProvider =
@@ -169,13 +181,15 @@ class SessionsNotifier extends StateNotifier<List<StudySession>> {
 
   List<StudySession> getSessionsForDate(DateTime date) {
     return state.where((s) {
-      final sessionDate = DateTime(s.startTime.year, s.startTime.month, s.startTime.day);
+      final sessionDate =
+          DateTime(s.startTime.year, s.startTime.month, s.startTime.day);
       return sessionDate == DateTime(date.year, date.month, date.day);
     }).toList();
   }
 
   int getTotalMinutesForDate(DateTime date) {
-    return getSessionsForDate(date).fold(0, (sum, s) => sum + s.durationMinutes);
+    return getSessionsForDate(date)
+        .fold(0, (sum, s) => sum + s.durationMinutes);
   }
 
   Map<String, int> getSubjectDistributionForDate(DateTime date) {
@@ -189,7 +203,8 @@ class SessionsNotifier extends StateNotifier<List<StudySession>> {
   }
 }
 
-final plansProvider = StateNotifierProvider<PlansNotifier, List<StudyPlan>>((ref) {
+final plansProvider =
+    StateNotifierProvider<PlansNotifier, List<StudyPlan>>((ref) {
   return PlansNotifier(ref.watch(databaseProvider));
 });
 
@@ -247,8 +262,7 @@ class PlansNotifier extends StateNotifier<List<StudyPlan>> {
   }
 
   Future<void> updatePlan(StudyPlan plan) async {
-    await (_db.update(_db.plans)..where((t) => t.id.equals(plan.id)))
-        .write(
+    await (_db.update(_db.plans)..where((t) => t.id.equals(plan.id))).write(
       PlansCompanion(
         title: Value(plan.title),
         description: Value(plan.description),
@@ -256,7 +270,8 @@ class PlansNotifier extends StateNotifier<List<StudyPlan>> {
         deadline: Value(plan.deadline),
         priority: Value(plan.priority.index),
         status: Value(plan.status.index),
-        subTasks: Value(jsonEncode(plan.subTasks.map((e) => e.toJson()).toList())),
+        subTasks:
+            Value(jsonEncode(plan.subTasks.map((e) => e.toJson()).toList())),
         completedMinutes: Value(plan.completedMinutes),
         startedAt: Value(plan.startedAt),
         completedAt: Value(plan.completedAt),
