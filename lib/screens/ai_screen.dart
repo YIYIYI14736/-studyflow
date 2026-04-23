@@ -489,13 +489,31 @@ class _AIScreenState extends ConsumerState<AIScreen> {
       return;
     }
 
+    // 构建完整的用户消息显示
+    final daysRemaining = examDate.difference(DateTime.now()).inDays;
+    final userContent = '''📅 生成学习计划
+• 目标：$examName
+• 截止日期：${examDate.toString().split(' ')[0]}（还有 $daysRemaining 天）
+• 科目：${subjects.join('、')}
+• 每日学习时间：$dailyHours 小时
+${additionalInfo != null && additionalInfo.isNotEmpty ? '• 补充：$additionalInfo' : ''}''';
+
     final userMessage = ChatMessage(
-      content: '请帮我制定 $examName 的学习计划',
+      content: userContent,
       isUser: true,
     );
     ref
         .read(chatMessagesProvider.notifier)
         .update((state) => [...state, userMessage]);
+
+    // 添加加载占位消息
+    final loadingMessage = ChatMessage(
+      content: '⏳ 正在搜索课程信息并生成学习计划，请稍候...',
+      isUser: false,
+    );
+    ref
+        .read(chatMessagesProvider.notifier)
+        .update((state) => [...state, loadingMessage]);
 
     setState(() => _isLoading = true);
 
@@ -552,19 +570,31 @@ class _AIScreenState extends ConsumerState<AIScreen> {
       }
 
       final aiMessage = ChatMessage(
+        id: loadingMessage.id, // 复用加载消息的 ID，替换它
         content: displayContent,
         isUser: false,
         planSuggestions: plans,
       );
-      ref
-          .read(chatMessagesProvider.notifier)
-          .update((state) => [...state, aiMessage]);
+      ref.read(chatMessagesProvider.notifier).update((state) =>
+          state.map((m) => m.id == loadingMessage.id ? aiMessage : m).toList());
       await _saveMemories();
     } catch (e) {
-      final errorMessage = ChatMessage(content: '错误: $e', isUser: false);
-      ref
-          .read(chatMessagesProvider.notifier)
-          .update((state) => [...state, errorMessage]);
+      print('[AIScreen] _handleGeneratePlan 错误: $e');
+      // 显示更详细的错误信息，替换加载消息
+      String errorText = '生成计划时发生错误';
+      if (e.toString().contains('超时')) {
+        errorText = '⏱️ 请求超时，请检查网络连接后重试';
+      } else if (e.toString().contains('API Key')) {
+        errorText = '🔑 API Key 配置有误，请检查设置';
+      } else if (e.toString().contains('参数错误')) {
+        errorText = '📝 请求参数错误，可能是内容过长，请简化后重试';
+      } else {
+        errorText = '❌ 错误: $e';
+      }
+      final errorMessage = ChatMessage(content: errorText, isUser: false);
+      ref.read(chatMessagesProvider.notifier).update((state) => state
+          .map((m) => m.id == loadingMessage.id ? errorMessage : m)
+          .toList());
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
