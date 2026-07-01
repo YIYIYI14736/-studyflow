@@ -16,10 +16,26 @@ class SubjectSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (subjects.isEmpty) {
-      return const Card(
+      return Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('还没有科目，请先添加'),
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.school_outlined,
+                    size: 40,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withValues(alpha: 0.4)),
+                const SizedBox(height: 8),
+                Text('还没有科目，请先到首页添加',
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              ],
+            ),
+          ),
         ),
       );
     }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,16 +8,16 @@ import 'package:studyflow/providers/providers.dart';
 import 'package:studyflow/services/ai_service.dart';
 import 'package:studyflow/services/memory_service.dart';
 import 'package:studyflow/screens/settings_screen.dart';
-import 'package:studyflow/screens/plans_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:studyflow/main.dart';
 
 final aiServiceProvider = Provider<AIService>((ref) {
   final settings = ref.watch(settingsProvider);
   final service = AIService();
   service.configure(
-    apiKey: settings.openaiApiKey,
-    baseUrl: settings.openaiBaseUrl,
-    model: settings.openaiModel,
+    apiKey: settings.aiApiKey,
+    baseUrl: settings.aiBaseUrl,
+    model: settings.aiModel,
     webSearchEnabled: settings.webSearchEnabled,
     searchApiKey: settings.searchApiKey,
     searchProvider: settings.searchProvider,
@@ -44,8 +45,16 @@ class _AIScreenState extends ConsumerState<AIScreen> {
     _loadMemories();
   }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadMemories() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     final memoriesJson = prefs.getString('ai_memories');
     if (memoriesJson != null) {
       final aiService = ref.read(aiServiceProvider);
@@ -112,7 +121,7 @@ class _AIScreenState extends ConsumerState<AIScreen> {
       ),
       body: Column(
         children: [
-          if (settings.openaiApiKey == null || settings.openaiApiKey!.isEmpty)
+          if (settings.aiApiKey == null || settings.aiApiKey!.isEmpty)
             _buildApiKeyWarning()
           else
             Expanded(
@@ -121,8 +130,8 @@ class _AIScreenState extends ConsumerState<AIScreen> {
                   : _buildChatList(messages),
             ),
           if (settings.webSearchEnabled &&
-              settings.openaiApiKey != null &&
-              settings.openaiApiKey!.isNotEmpty)
+              settings.aiApiKey != null &&
+              settings.aiApiKey!.isNotEmpty)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               color: (settings.searchApiKey != null &&
@@ -172,7 +181,7 @@ class _AIScreenState extends ConsumerState<AIScreen> {
           children: [
             const Icon(Icons.key_off, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
-            const Text('请先在设置中配置 OpenAI API Key'),
+            const Text('请先在设置中配置 DeepSeek API Key'),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => Navigator.push(
@@ -188,17 +197,58 @@ class _AIScreenState extends ConsumerState<AIScreen> {
   }
 
   Widget _buildQuickActions() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.smart_toy, size: 64, color: Colors.blue),
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/ai_avatar.jpg',
+                  width: 88,
+                  height: 88,
+                  fit: BoxFit.cover,
+                  errorBuilder: (ctx, err, stack) => Container(
+                    width: 88,
+                    height: 88,
+                    decoration: const BoxDecoration(
+                      gradient:
+                          LinearGradient(colors: AppColors.primaryGradient),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.smart_toy,
+                        size: 40, color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
-            const Text('AI 学习助手',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 32),
+            Text('AI 学习助手',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface)),
+            const SizedBox(height: 8),
+            Text('选择下面的快捷操作开始对话',
+                style: TextStyle(
+                    fontSize: 14, color: colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 24),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -250,19 +300,23 @@ class _AIScreenState extends ConsumerState<AIScreen> {
   }
 
   Widget _buildInputArea() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: EdgeInsets.only(
         left: 16,
-        right: 16,
+        right: 12,
         top: 8,
         bottom: MediaQuery.of(context).padding.bottom + 8,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
@@ -271,27 +325,50 @@ class _AIScreenState extends ConsumerState<AIScreen> {
           Expanded(
             child: TextField(
               controller: _controller,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: '输入问题...',
-                border: OutlineInputBorder(),
+                hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                filled: true,
+                fillColor: isDark
+                    ? colorScheme.surfaceContainerHighest
+                    : const Color(0xFFF8F9FE),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
                 contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
+              style: TextStyle(color: colorScheme.onSurface),
               maxLines: null,
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => _send(),
             ),
           ),
           const SizedBox(width: 8),
-          IconButton.filled(
-            onPressed: _isLoading ? null : _send,
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: AppColors.primaryGradient),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              onPressed: _isLoading ? null : _send,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.send, color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -346,44 +423,68 @@ class _AIScreenState extends ConsumerState<AIScreen> {
     setState(() => _isLoading = true);
 
     String fullContent = '';
+    StreamSubscription<String>? subscription;
     try {
-      await for (final token in aiService.chatStream(aiPrompt)) {
-        fullContent += token;
-        // 按 ID 更新 AI 消息，比 state.last 更安全
-        ref.read(chatMessagesProvider.notifier).update((state) => state
-            .map((m) => m.id == placeholder.id
-                ? ChatMessage(
-                    id: placeholder.id, content: fullContent, isUser: false)
-                : m)
-            .toList());
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      final completer = Completer<void>();
+      subscription = aiService.chatStream(aiPrompt).listen(
+        (token) {
+          fullContent += token;
+          if (mounted) {
+            ref.read(chatMessagesProvider.notifier).update((state) => state
+                .map((m) => m.id == placeholder.id
+                    ? ChatMessage(
+                        id: placeholder.id, content: fullContent, isUser: false)
+                    : m)
+                .toList());
+            if (_scrollController.hasClients) {
+              _scrollController
+                  .jumpTo(_scrollController.position.maxScrollExtent);
+            }
+          }
+        },
+        onError: (e) {
+          if (!completer.isCompleted) completer.completeError(e);
+        },
+        onDone: () {
+          if (!completer.isCompleted) completer.complete();
+        },
+      );
+      // 超时保护：120秒后强制取消
+      await Future.any(
+          [completer.future, Future.delayed(const Duration(seconds: 120))]);
+      subscription.cancel();
+
+      if (fullContent.isNotEmpty) {
+        try {
+          await _saveMemories();
+        } catch (_) {}
+        if (mounted) {
+          _tryExtractAndAttachPlans(
+            userMessage: userDisplayText,
+            aiResponse: fullContent,
+            messageId: placeholder.id,
+          );
         }
       }
-      await _saveMemories();
-
-      // 每条回复都交由模型自行判断是否为计划请求，比关键词匹配更准确
-      if (fullContent.isNotEmpty) {
-        _tryExtractAndAttachPlans(
-          userMessage: userDisplayText,
-          aiResponse: fullContent,
-          messageId: placeholder.id,
-        );
-      }
     } catch (e) {
-      ref.read(chatMessagesProvider.notifier).update((state) => state.map((m) {
-            if (m.id == placeholder.id) {
-              return ChatMessage(
-                id: placeholder.id,
-                content: fullContent.isEmpty
-                    ? '错误: $e'
-                    : '$fullContent\n\n---\n⚠️ 请求中断: $e',
-                isUser: false,
-              );
-            }
-            return m;
-          }).toList());
+      if (mounted) {
+        ref
+            .read(chatMessagesProvider.notifier)
+            .update((state) => state.map((m) {
+                  if (m.id == placeholder.id) {
+                    return ChatMessage(
+                      id: placeholder.id,
+                      content: fullContent.isEmpty
+                          ? '错误: $e'
+                          : '$fullContent\n\n---\n⚠️ 请求中断: $e',
+                      isUser: false,
+                    );
+                  }
+                  return m;
+                }).toList());
+      }
     } finally {
+      await subscription?.cancel();
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -413,15 +514,19 @@ class _AIScreenState extends ConsumerState<AIScreen> {
         final map = p as Map<String, dynamic>;
         int targetMinutes = 120;
         final tv = map['targetMinutes'];
-        if (tv is int)
+        if (tv is int) {
           targetMinutes = tv;
-        else if (tv is String)
+        } else if (tv is String) {
           targetMinutes = int.tryParse(tv) ?? 120;
-        else if (tv is double) targetMinutes = tv.toInt();
+        } else if (tv is double) {
+          targetMinutes = tv.toInt();
+        }
 
         DateTime? deadline;
         final dv = map['deadline'];
-        if (dv is String) deadline = DateTime.tryParse(dv);
+        if (dv is String) {
+          deadline = DateTime.tryParse(dv);
+        }
 
         return AIPlanSuggestion(
           title: map['title'] as String? ?? '未命名计划',
@@ -579,7 +684,7 @@ ${additionalInfo != null && additionalInfo.isNotEmpty ? '• 补充：$additiona
           state.map((m) => m.id == loadingMessage.id ? aiMessage : m).toList());
       await _saveMemories();
     } catch (e) {
-      print('[AIScreen] _handleGeneratePlan 错误: $e');
+      debugPrint('[AIScreen] _handleGeneratePlan 错误: $e');
       // 显示更详细的错误信息，替换加载消息
       String errorText = '生成计划时发生错误';
       if (e.toString().contains('超时')) {
@@ -709,7 +814,8 @@ ${additionalInfo != null && additionalInfo.isNotEmpty ? '• 补充：$additiona
                           return _MemoryCard(
                             memory: memory,
                             onDelete: () {
-                              // 由于 MemoryService 没有删除单个的方法，暂时跳过
+                              aiService.memoryService.removeMemory(memory.id);
+                              _saveMemories();
                               setModalState(() {});
                             },
                           );
@@ -745,10 +851,12 @@ ${additionalInfo != null && additionalInfo.isNotEmpty ? '• 补充：$additiona
           ),
           ElevatedButton(
             onPressed: () async {
-              if (controller.text.isNotEmpty) {
+              final note = controller.text;
+              if (note.isNotEmpty) {
                 final aiService = ref.read(aiServiceProvider);
-                await aiService.addMemory(controller.text, type: 'note');
+                await aiService.addMemory(note, type: 'note');
                 await _saveMemories();
+                if (!context.mounted) return;
                 Navigator.pop(context);
                 onAdded();
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -777,15 +885,44 @@ class _QuickActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      // 使用 ElevatedButton 或 OutlinedButton 更大更容易点击且有明显反馈
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        elevation: 0,
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-        foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border:
+                Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -798,28 +935,55 @@ class _ChatBubble extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.all(12),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.85,
         ),
         decoration: BoxDecoration(
+          gradient: message.isUser
+              ? const LinearGradient(
+                  colors: AppColors.primaryGradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight)
+              : null,
           color: message.isUser
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
+              ? null
+              : isDark
+                  ? colorScheme.surfaceContainerHighest
+                  : Colors.white,
           borderRadius: BorderRadius.circular(16),
+          boxShadow: message.isUser
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             message.isUser
                 ? Text(
                     message.content,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onPrimary,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
                     ),
                   )
                 : MarkdownBody(
@@ -828,7 +992,8 @@ class _ChatBubble extends ConsumerWidget {
                     styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
                         .copyWith(
                       p: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
+                            color: colorScheme.onSurface,
+                            fontSize: 15,
                           ),
                     ),
                   ),
@@ -841,13 +1006,13 @@ class _ChatBubble extends ConsumerWidget {
               Row(
                 children: [
                   Icon(Icons.assignment_add,
-                      size: 16, color: Theme.of(context).colorScheme.primary),
+                      size: 16, color: AppColors.primary),
                   const SizedBox(width: 4),
                   Text(
                     'AI 生成了 ${message.planSuggestions!.length} 个计划',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -855,13 +1020,15 @@ class _ChatBubble extends ConsumerWidget {
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
+                child: FilledButton.icon(
                   onPressed: () => _importPlans(context, ref),
                   icon: const Icon(Icons.download, size: 18),
                   label: const Text('导入全部计划'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
@@ -940,19 +1107,17 @@ class _ChatBubble extends ConsumerWidget {
           currentSubjects.where((s) => s.name == plan.subjectName).firstOrNull;
 
       // 2. 如果没有精确匹配，尝试模糊匹配（包含关系）
-      if (subject == null) {
-        subject = currentSubjects
-            .where((s) =>
-                s.name.contains(plan.subjectName) ||
-                plan.subjectName.contains(s.name))
-            .firstOrNull;
-      }
+      subject ??= currentSubjects
+          .where((s) =>
+              s.name.contains(plan.subjectName) ||
+              plan.subjectName.contains(s.name))
+          .firstOrNull;
 
       // 3. 如果还是没有，创建新科目
       if (subject == null) {
         final newSubject = Subject(
           name: plan.subjectName,
-          color: colors[colorIndex % colors.length].value.toString(),
+          color: colors[colorIndex % colors.length].toARGB32().toString(),
         );
         colorIndex++;
         await ref.read(subjectsProvider.notifier).addSubject(newSubject);
@@ -994,11 +1159,8 @@ class _ChatBubble extends ConsumerWidget {
           action: SnackBarAction(
             label: '查看',
             onPressed: () {
-              // 跳转到计划页面
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PlansScreen()),
-              );
+              // 关闭 SnackBar 后由用户手动切换到计划 Tab
+              Navigator.pop(context);
             },
           ),
         ),
@@ -1141,7 +1303,7 @@ class _PlanGeneratorSheetState extends ConsumerState<_PlanGeneratorSheet> {
     final aiService = ref.read(aiServiceProvider);
     if (!aiService.isConfigured) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先配置 API Key')),
+        const SnackBar(content: Text('请先配置 DeepSeek API Key')),
       );
       return;
     }

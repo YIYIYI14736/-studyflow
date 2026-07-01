@@ -1,11 +1,16 @@
-// API Keys Configuration
+// API Keys Configuration - DeepSeek Only
 // ⚠️ 本文件包含敏感信息，本地修改已被 git skip-worktree 保护，不会被提交
-// 如需配置自己的 Key，修改下方常量即可
+//
+// DeepSeek API: https://api.deepseek.com
+// 模型文档:    https://platform.deepseek.com/api-docs/
+//
+// 可用模型:
+// - deepseek-v4-flash  (快速版，高性价比)
+// - deepseek-v4-pro    (专业版，更强推理)
 
 const String kBuiltInApiKey = '';
-const String kBuiltInBaseUrl =
-    'https://ark.cn-beijing.volces.com/api/coding/v3';
-const String kBuiltInModel = 'deepseek-v3.2';
+const String kBuiltInBaseUrl = 'https://api.deepseek.com';
+const String kBuiltInModel = 'deepseek-v4-flash';
 
 // 联网搜索 API（Tavily）
 const String kBuiltInSearchApiKey = '';

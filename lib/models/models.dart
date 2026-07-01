@@ -1,6 +1,11 @@
 import 'package:uuid/uuid.dart';
 import 'package:studyflow/config/api_keys.dart';
 
+T _safeEnumFromIndex<T>(List<T> values, int index, T fallback) {
+  if (index >= 0 && index < values.length) return values[index];
+  return fallback;
+}
+
 enum TimerMode { pomodoro, countdown, stopwatch }
 
 enum PlanStatus { pending, inProgress, completed }
@@ -53,6 +58,131 @@ class Subject {
         color: json['color'] as String?,
         icon: json['icon'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
+      );
+}
+
+// ============================================================
+//  错题模型
+// ============================================================
+
+/// 错题状态
+enum WQStatus { wrong, corrected, mastered }
+
+/// 一道错题
+class WrongQuestion {
+  final String id;
+  final String subjectId; // 科目ID（三级索引：课程）
+  final int pageNumber; // 页码（三级索引：页码）
+  final int questionNumber; // 题号（三级索引：题号）
+  final String? note; // 备注
+  final DateTime createdAt;
+
+  WrongQuestion({
+    String? id,
+    required this.subjectId,
+    required this.pageNumber,
+    required this.questionNumber,
+    this.note,
+    DateTime? createdAt,
+  })  : id = id ?? const Uuid().v4(),
+        createdAt = createdAt ?? DateTime.now();
+
+  /// 三级索引标识
+  String get indexLabel => 'P$pageNumber-#$questionNumber';
+
+  WrongQuestion copyWith({
+    String? id,
+    String? subjectId,
+    int? pageNumber,
+    int? questionNumber,
+    String? note,
+    DateTime? createdAt,
+  }) =>
+      WrongQuestion(
+        id: id ?? this.id,
+        subjectId: subjectId ?? this.subjectId,
+        pageNumber: pageNumber ?? this.pageNumber,
+        questionNumber: questionNumber ?? this.questionNumber,
+        note: note ?? this.note,
+        createdAt: createdAt ?? this.createdAt,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'subjectId': subjectId,
+        'pageNumber': pageNumber,
+        'questionNumber': questionNumber,
+        'note': note,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory WrongQuestion.fromJson(Map<String, dynamic> json) => WrongQuestion(
+        id: json['id'] as String,
+        subjectId: json['subjectId'] as String,
+        pageNumber: json['pageNumber'] as int,
+        questionNumber: json['questionNumber'] as int,
+        note: json['note'] as String?,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+      );
+}
+
+/// 一轮复习记录
+class WrongQuestionRound {
+  final String id;
+  final String questionId; // 关联的错题
+  final int round; // 第几轮（1/2/3...）
+  final WQStatus status; // 本轮状态
+  final DateTime reviewedAt;
+  final String? note;
+
+  WrongQuestionRound({
+    String? id,
+    required this.questionId,
+    required this.round,
+    required this.status,
+    DateTime? reviewedAt,
+    this.note,
+  })  : id = id ?? const Uuid().v4(),
+        reviewedAt = reviewedAt ?? DateTime.now();
+
+  bool get isCorrect =>
+      status == WQStatus.corrected || status == WQStatus.mastered;
+
+  WrongQuestionRound copyWith({
+    String? id,
+    String? questionId,
+    int? round,
+    WQStatus? status,
+    DateTime? reviewedAt,
+    String? note,
+  }) =>
+      WrongQuestionRound(
+        id: id ?? this.id,
+        questionId: questionId ?? this.questionId,
+        round: round ?? this.round,
+        status: status ?? this.status,
+        reviewedAt: reviewedAt ?? this.reviewedAt,
+        note: note ?? this.note,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'questionId': questionId,
+        'round': round,
+        'status': status.index,
+        'reviewedAt': reviewedAt.toIso8601String(),
+        'note': note,
+      };
+
+  factory WrongQuestionRound.fromJson(Map<String, dynamic> json) =>
+      WrongQuestionRound(
+        id: json['id'] as String,
+        questionId: json['questionId'] as String,
+        round: json['round'] as int,
+        status: _safeEnumFromIndex(
+            WQStatus.values, json['status'] as int, WQStatus.wrong),
+        reviewedAt: DateTime.parse(json['reviewedAt'] as String),
+        note: json['note'] as String?,
       );
 }
 
@@ -125,7 +255,8 @@ class StudySession {
         startTime: DateTime.parse(json['startTime'] as String),
         endTime: DateTime.parse(json['endTime'] as String),
         durationSeconds: json['durationSeconds'] as int,
-        mode: TimerMode.values[json['mode'] as int],
+        mode: _safeEnumFromIndex(
+            TimerMode.values, json['mode'] as int, TimerMode.pomodoro),
         planId: json['planId'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
       );
@@ -214,10 +345,12 @@ class StudyPlan {
 
   int get progressPercent => (progress * 100).round();
 
-  bool get isOverdue =>
-      deadline != null &&
-      deadline!.isBefore(DateTime.now()) &&
-      status != PlanStatus.completed;
+  bool get isOverdue {
+    if (deadline == null || status == PlanStatus.completed) return false;
+    final endOfDeadlineDay =
+        DateTime(deadline!.year, deadline!.month, deadline!.day, 23, 59, 59);
+    return DateTime.now().isAfter(endOfDeadlineDay);
+  }
 
   StudyPlan copyWith({
     String? id,
@@ -280,9 +413,11 @@ class StudyPlan {
         deadline: json['deadline'] != null
             ? DateTime.parse(json['deadline'] as String)
             : null,
-        priority: PlanPriority.values[json['priority'] as int],
-        status: PlanStatus.values[json['status'] as int],
-        subTasks: (json['subTasks'] as List)
+        priority: _safeEnumFromIndex(
+            PlanPriority.values, json['priority'] as int, PlanPriority.medium),
+        status: _safeEnumFromIndex(
+            PlanStatus.values, json['status'] as int, PlanStatus.pending),
+        subTasks: (json['subTasks'] as List? ?? [])
             .map((e) => SubTask.fromJson(e as Map<String, dynamic>))
             .toList(),
         completedMinutes: json['completedMinutes'] as int,
@@ -296,10 +431,12 @@ class StudyPlan {
       );
 }
 
+const Object _unsetSettingValue = Object();
+
 class AppSettings {
-  final String? openaiApiKey;
-  final String? openaiBaseUrl;
-  final String openaiModel;
+  final String? aiApiKey;
+  final String? aiBaseUrl;
+  final String aiModel;
   final bool notificationsEnabled;
   final int pomodoroWorkMinutes;
   final int pomodoroBreakMinutes;
@@ -309,9 +446,9 @@ class AppSettings {
   final String searchProvider; // 'tavily', 'bing', 'custom'
 
   AppSettings({
-    this.openaiApiKey = kBuiltInApiKey,
-    this.openaiBaseUrl = kBuiltInBaseUrl,
-    this.openaiModel = kBuiltInModel,
+    this.aiApiKey = kBuiltInApiKey,
+    this.aiBaseUrl = kBuiltInBaseUrl,
+    this.aiModel = kBuiltInModel,
     this.notificationsEnabled = true,
     this.pomodoroWorkMinutes = 25,
     this.pomodoroBreakMinutes = 5,
@@ -322,9 +459,9 @@ class AppSettings {
   });
 
   AppSettings copyWith({
-    String? openaiApiKey,
-    String? openaiBaseUrl,
-    String? openaiModel,
+    Object? aiApiKey = _unsetSettingValue,
+    Object? aiBaseUrl = _unsetSettingValue,
+    String? aiModel,
     bool? notificationsEnabled,
     int? pomodoroWorkMinutes,
     int? pomodoroBreakMinutes,
@@ -334,9 +471,13 @@ class AppSettings {
     String? searchProvider,
   }) {
     return AppSettings(
-      openaiApiKey: openaiApiKey ?? this.openaiApiKey,
-      openaiBaseUrl: openaiBaseUrl ?? this.openaiBaseUrl,
-      openaiModel: openaiModel ?? this.openaiModel,
+      aiApiKey: identical(aiApiKey, _unsetSettingValue)
+          ? this.aiApiKey
+          : aiApiKey as String?,
+      aiBaseUrl: identical(aiBaseUrl, _unsetSettingValue)
+          ? this.aiBaseUrl
+          : aiBaseUrl as String?,
+      aiModel: aiModel ?? this.aiModel,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       pomodoroWorkMinutes: pomodoroWorkMinutes ?? this.pomodoroWorkMinutes,
       pomodoroBreakMinutes: pomodoroBreakMinutes ?? this.pomodoroBreakMinutes,
@@ -348,9 +489,9 @@ class AppSettings {
   }
 
   Map<String, dynamic> toJson() => {
-        'openaiApiKey': openaiApiKey,
-        'openaiBaseUrl': openaiBaseUrl,
-        'openaiModel': openaiModel,
+        'aiApiKey': aiApiKey,
+        'aiBaseUrl': aiBaseUrl,
+        'aiModel': aiModel,
         'notificationsEnabled': notificationsEnabled,
         'pomodoroWorkMinutes': pomodoroWorkMinutes,
         'pomodoroBreakMinutes': pomodoroBreakMinutes,
@@ -361,9 +502,15 @@ class AppSettings {
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
-        openaiApiKey: json['openaiApiKey'] as String? ?? kBuiltInApiKey,
-        openaiBaseUrl: json['openaiBaseUrl'] as String? ?? kBuiltInBaseUrl,
-        openaiModel: json['openaiModel'] as String? ?? kBuiltInModel,
+        aiApiKey: json['aiApiKey'] as String? ??
+            json['openaiApiKey'] as String? ??
+            kBuiltInApiKey,
+        aiBaseUrl: json['aiBaseUrl'] as String? ??
+            json['openaiBaseUrl'] as String? ??
+            kBuiltInBaseUrl,
+        aiModel: json['aiModel'] as String? ??
+            json['openaiModel'] as String? ??
+            kBuiltInModel,
         notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
         pomodoroWorkMinutes: json['pomodoroWorkMinutes'] as int? ?? 25,
         pomodoroBreakMinutes: json['pomodoroBreakMinutes'] as int? ?? 5,

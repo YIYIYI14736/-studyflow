@@ -30,7 +30,8 @@ class TimerStateData {
 
   int get minutes => remainingSeconds ~/ 60;
   int get seconds => remainingSeconds % 60;
-  double get progress => totalSeconds > 0 ? (totalSeconds - remainingSeconds) / totalSeconds : 0;
+  double get progress =>
+      totalSeconds > 0 ? (totalSeconds - remainingSeconds) / totalSeconds : 0;
 
   TimerStateData copyWith({
     TimerState? state,
@@ -65,8 +66,17 @@ final timerProvider =
 class TimerNotifier extends StateNotifier<TimerStateData> {
   final Ref _ref;
   Timer? _timer;
+  DateTime? _sessionStartTime;
 
   TimerNotifier(this._ref) : super(TimerStateData());
+
+  void _saveCurrentSessionIfNeeded() {
+    if (state.state == TimerState.running || state.state == TimerState.paused) {
+      if (!state.isBreak) {
+        _saveSession();
+      }
+    }
+  }
 
   void startPomodoro({
     required int workMinutes,
@@ -75,6 +85,9 @@ class TimerNotifier extends StateNotifier<TimerStateData> {
     String? subjectName,
     String? planId,
   }) {
+    _saveCurrentSessionIfNeeded();
+    _timer?.cancel();
+    _sessionStartTime = DateTime.now();
     state = TimerStateData(
       state: TimerState.running,
       mode: TimerMode.pomodoro,
@@ -94,6 +107,9 @@ class TimerNotifier extends StateNotifier<TimerStateData> {
     String? subjectName,
     String? planId,
   }) {
+    _saveCurrentSessionIfNeeded();
+    _timer?.cancel();
+    _sessionStartTime = DateTime.now();
     state = TimerStateData(
       state: TimerState.running,
       mode: TimerMode.countdown,
@@ -111,6 +127,9 @@ class TimerNotifier extends StateNotifier<TimerStateData> {
     String? subjectName,
     String? planId,
   }) {
+    _saveCurrentSessionIfNeeded();
+    _timer?.cancel();
+    _sessionStartTime = DateTime.now();
     state = TimerStateData(
       state: TimerState.running,
       mode: TimerMode.stopwatch,
@@ -160,28 +179,39 @@ class TimerNotifier extends StateNotifier<TimerStateData> {
 
   void stop() {
     _timer?.cancel();
-    if (state.state == TimerState.running || state.state == TimerState.paused) {
+    if ((state.state == TimerState.running ||
+            state.state == TimerState.paused) &&
+        !state.isBreak) {
       _saveSession();
     }
+    _sessionStartTime = null;
     state = TimerStateData();
   }
 
   void _complete() {
     _timer?.cancel();
-    _saveSession();
-    state = state.copyWith(state: TimerState.completed);
 
-    if (state.mode == TimerMode.pomodoro && !state.isBreak) {
-      final settings = _ref.read(settingsProvider);
-      final breakMinutes = settings.pomodoroBreakMinutes;
-      state = state.copyWith(
-        state: TimerState.running,
-        remainingSeconds: breakMinutes * 60,
-        totalSeconds: breakMinutes * 60,
-        isBreak: true,
-      );
-      _startTimer();
+    // 工作阶段完成：保存 session 并尝试进入休息
+    if (!state.isBreak) {
+      _saveSession();
+
+      if (state.mode == TimerMode.pomodoro) {
+        // 直接进入休息，不经过 completed 中间态
+        final settings = _ref.read(settingsProvider);
+        final breakMinutes = settings.pomodoroBreakMinutes;
+        state = state.copyWith(
+          state: TimerState.running,
+          remainingSeconds: breakMinutes * 60,
+          totalSeconds: breakMinutes * 60,
+          isBreak: true,
+        );
+        _startTimer();
+        return;
+      }
     }
+    // 休息结束 或 非番茄钟模式：直接标记完成
+    _sessionStartTime = null;
+    state = state.copyWith(state: TimerState.completed);
   }
 
   void _saveSession() {
@@ -190,10 +220,12 @@ class TimerNotifier extends StateNotifier<TimerStateData> {
         : state.totalSeconds - state.remainingSeconds;
 
     if (duration > 0 && state.subjectId != null) {
+      final startTime = _sessionStartTime ??
+          DateTime.now().subtract(Duration(seconds: duration));
       final session = StudySession(
         subjectId: state.subjectId!,
         subjectName: state.subjectName,
-        startTime: DateTime.now().subtract(Duration(seconds: duration)),
+        startTime: startTime,
         endTime: DateTime.now(),
         durationSeconds: duration,
         mode: state.mode,
@@ -202,7 +234,10 @@ class TimerNotifier extends StateNotifier<TimerStateData> {
       _ref.read(sessionsProvider.notifier).addSession(session);
 
       if (state.planId != null) {
-        _ref.read(plansProvider.notifier).addProgress(state.planId!, duration ~/ 60);
+        final minutes = (duration / 60).round();
+        if (minutes > 0) {
+          _ref.read(plansProvider.notifier).addProgress(state.planId!, minutes);
+        }
       }
     }
   }

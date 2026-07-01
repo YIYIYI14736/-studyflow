@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,17 +9,27 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
+  int _notificationIdCounter = 1;
 
   Future<void> initialize() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings();
+    try {
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
 
-    const settings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
+      const settings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
 
-    await _notifications.initialize(settings);
+      await _notifications.initialize(settings);
+    } catch (e) {
+      debugPrint('[NotificationService] 初始化失败: $e');
+    }
   }
 
   Future<void> showTimerComplete({
@@ -40,7 +51,7 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    await _notifications.show(0, title, body, details);
+    await _notifications.show(_notificationIdCounter++, title, body, details);
   }
 
   Future<void> showBreakComplete() async {

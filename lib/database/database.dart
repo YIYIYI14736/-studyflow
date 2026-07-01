@@ -55,12 +55,60 @@ class Plans extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Subjects, Sessions, Plans])
-class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+// ============================================================
+//  错题表
+// ============================================================
+@DataClassName('WQData')
+class WrongQuestions extends Table {
+  TextColumn get id => text()();
+  TextColumn get subjectId => text()(); // 科目ID
+  IntColumn get pageNumber => integer()(); // 页码
+  IntColumn get questionNumber => integer()(); // 题号
+  TextColumn get note => text().nullable()(); // 备注
+  DateTimeColumn get createdAt => dateTime()();
 
   @override
-  int get schemaVersion => 1;
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('WQRoundData')
+class WrongQuestionRounds extends Table {
+  TextColumn get id => text()();
+  TextColumn get questionId => text()(); // 关联错题ID
+  IntColumn get round => integer()(); // 第几轮
+  IntColumn get status => integer()(); // 0=wrong 1=corrected 2=mastered
+  DateTimeColumn get reviewedAt => dateTime()(); // 复习时间
+  TextColumn get note => text().nullable()(); // 备注
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [
+  Subjects,
+  Sessions,
+  Plans,
+  WrongQuestions,
+  WrongQuestionRounds,
+])
+class AppDatabase extends _$AppDatabase {
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
+
+  @override
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
+          await m.createAll();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(wrongQuestions);
+            await m.createTable(wrongQuestionRounds);
+          }
+        },
+      );
 }
 
 LazyDatabase _openConnection() {

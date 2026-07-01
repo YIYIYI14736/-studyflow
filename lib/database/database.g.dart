@@ -1469,18 +1469,722 @@ class PlansCompanion extends UpdateCompanion<PlanData> {
   }
 }
 
+class $WrongQuestionsTable extends WrongQuestions
+    with TableInfo<$WrongQuestionsTable, WQData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WrongQuestionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _subjectIdMeta =
+      const VerificationMeta('subjectId');
+  @override
+  late final GeneratedColumn<String> subjectId = GeneratedColumn<String>(
+      'subject_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _pageNumberMeta =
+      const VerificationMeta('pageNumber');
+  @override
+  late final GeneratedColumn<int> pageNumber = GeneratedColumn<int>(
+      'page_number', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _questionNumberMeta =
+      const VerificationMeta('questionNumber');
+  @override
+  late final GeneratedColumn<int> questionNumber = GeneratedColumn<int>(
+      'question_number', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, subjectId, pageNumber, questionNumber, note, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'wrong_questions';
+  @override
+  VerificationContext validateIntegrity(Insertable<WQData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('subject_id')) {
+      context.handle(_subjectIdMeta,
+          subjectId.isAcceptableOrUnknown(data['subject_id']!, _subjectIdMeta));
+    } else if (isInserting) {
+      context.missing(_subjectIdMeta);
+    }
+    if (data.containsKey('page_number')) {
+      context.handle(
+          _pageNumberMeta,
+          pageNumber.isAcceptableOrUnknown(
+              data['page_number']!, _pageNumberMeta));
+    } else if (isInserting) {
+      context.missing(_pageNumberMeta);
+    }
+    if (data.containsKey('question_number')) {
+      context.handle(
+          _questionNumberMeta,
+          questionNumber.isAcceptableOrUnknown(
+              data['question_number']!, _questionNumberMeta));
+    } else if (isInserting) {
+      context.missing(_questionNumberMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WQData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WQData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      subjectId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}subject_id'])!,
+      pageNumber: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}page_number'])!,
+      questionNumber: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}question_number'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $WrongQuestionsTable createAlias(String alias) {
+    return $WrongQuestionsTable(attachedDatabase, alias);
+  }
+}
+
+class WQData extends DataClass implements Insertable<WQData> {
+  final String id;
+  final String subjectId;
+  final int pageNumber;
+  final int questionNumber;
+  final String? note;
+  final DateTime createdAt;
+  const WQData(
+      {required this.id,
+      required this.subjectId,
+      required this.pageNumber,
+      required this.questionNumber,
+      this.note,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['subject_id'] = Variable<String>(subjectId);
+    map['page_number'] = Variable<int>(pageNumber);
+    map['question_number'] = Variable<int>(questionNumber);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  WrongQuestionsCompanion toCompanion(bool nullToAbsent) {
+    return WrongQuestionsCompanion(
+      id: Value(id),
+      subjectId: Value(subjectId),
+      pageNumber: Value(pageNumber),
+      questionNumber: Value(questionNumber),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory WQData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WQData(
+      id: serializer.fromJson<String>(json['id']),
+      subjectId: serializer.fromJson<String>(json['subjectId']),
+      pageNumber: serializer.fromJson<int>(json['pageNumber']),
+      questionNumber: serializer.fromJson<int>(json['questionNumber']),
+      note: serializer.fromJson<String?>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'subjectId': serializer.toJson<String>(subjectId),
+      'pageNumber': serializer.toJson<int>(pageNumber),
+      'questionNumber': serializer.toJson<int>(questionNumber),
+      'note': serializer.toJson<String?>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  WQData copyWith(
+          {String? id,
+          String? subjectId,
+          int? pageNumber,
+          int? questionNumber,
+          Value<String?> note = const Value.absent(),
+          DateTime? createdAt}) =>
+      WQData(
+        id: id ?? this.id,
+        subjectId: subjectId ?? this.subjectId,
+        pageNumber: pageNumber ?? this.pageNumber,
+        questionNumber: questionNumber ?? this.questionNumber,
+        note: note.present ? note.value : this.note,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  WQData copyWithCompanion(WrongQuestionsCompanion data) {
+    return WQData(
+      id: data.id.present ? data.id.value : this.id,
+      subjectId: data.subjectId.present ? data.subjectId.value : this.subjectId,
+      pageNumber:
+          data.pageNumber.present ? data.pageNumber.value : this.pageNumber,
+      questionNumber: data.questionNumber.present
+          ? data.questionNumber.value
+          : this.questionNumber,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WQData(')
+          ..write('id: $id, ')
+          ..write('subjectId: $subjectId, ')
+          ..write('pageNumber: $pageNumber, ')
+          ..write('questionNumber: $questionNumber, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, subjectId, pageNumber, questionNumber, note, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WQData &&
+          other.id == this.id &&
+          other.subjectId == this.subjectId &&
+          other.pageNumber == this.pageNumber &&
+          other.questionNumber == this.questionNumber &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class WrongQuestionsCompanion extends UpdateCompanion<WQData> {
+  final Value<String> id;
+  final Value<String> subjectId;
+  final Value<int> pageNumber;
+  final Value<int> questionNumber;
+  final Value<String?> note;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const WrongQuestionsCompanion({
+    this.id = const Value.absent(),
+    this.subjectId = const Value.absent(),
+    this.pageNumber = const Value.absent(),
+    this.questionNumber = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WrongQuestionsCompanion.insert({
+    required String id,
+    required String subjectId,
+    required int pageNumber,
+    required int questionNumber,
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        subjectId = Value(subjectId),
+        pageNumber = Value(pageNumber),
+        questionNumber = Value(questionNumber),
+        createdAt = Value(createdAt);
+  static Insertable<WQData> custom({
+    Expression<String>? id,
+    Expression<String>? subjectId,
+    Expression<int>? pageNumber,
+    Expression<int>? questionNumber,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (subjectId != null) 'subject_id': subjectId,
+      if (pageNumber != null) 'page_number': pageNumber,
+      if (questionNumber != null) 'question_number': questionNumber,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WrongQuestionsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? subjectId,
+      Value<int>? pageNumber,
+      Value<int>? questionNumber,
+      Value<String?>? note,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return WrongQuestionsCompanion(
+      id: id ?? this.id,
+      subjectId: subjectId ?? this.subjectId,
+      pageNumber: pageNumber ?? this.pageNumber,
+      questionNumber: questionNumber ?? this.questionNumber,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (subjectId.present) {
+      map['subject_id'] = Variable<String>(subjectId.value);
+    }
+    if (pageNumber.present) {
+      map['page_number'] = Variable<int>(pageNumber.value);
+    }
+    if (questionNumber.present) {
+      map['question_number'] = Variable<int>(questionNumber.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WrongQuestionsCompanion(')
+          ..write('id: $id, ')
+          ..write('subjectId: $subjectId, ')
+          ..write('pageNumber: $pageNumber, ')
+          ..write('questionNumber: $questionNumber, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WrongQuestionRoundsTable extends WrongQuestionRounds
+    with TableInfo<$WrongQuestionRoundsTable, WQRoundData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WrongQuestionRoundsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _questionIdMeta =
+      const VerificationMeta('questionId');
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+      'question_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _roundMeta = const VerificationMeta('round');
+  @override
+  late final GeneratedColumn<int> round = GeneratedColumn<int>(
+      'round', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<int> status = GeneratedColumn<int>(
+      'status', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _reviewedAtMeta =
+      const VerificationMeta('reviewedAt');
+  @override
+  late final GeneratedColumn<DateTime> reviewedAt = GeneratedColumn<DateTime>(
+      'reviewed_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, questionId, round, status, reviewedAt, note];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'wrong_question_rounds';
+  @override
+  VerificationContext validateIntegrity(Insertable<WQRoundData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('question_id')) {
+      context.handle(
+          _questionIdMeta,
+          questionId.isAcceptableOrUnknown(
+              data['question_id']!, _questionIdMeta));
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('round')) {
+      context.handle(
+          _roundMeta, round.isAcceptableOrUnknown(data['round']!, _roundMeta));
+    } else if (isInserting) {
+      context.missing(_roundMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('reviewed_at')) {
+      context.handle(
+          _reviewedAtMeta,
+          reviewedAt.isAcceptableOrUnknown(
+              data['reviewed_at']!, _reviewedAtMeta));
+    } else if (isInserting) {
+      context.missing(_reviewedAtMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WQRoundData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WQRoundData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      questionId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}question_id'])!,
+      round: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}round'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}status'])!,
+      reviewedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}reviewed_at'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
+    );
+  }
+
+  @override
+  $WrongQuestionRoundsTable createAlias(String alias) {
+    return $WrongQuestionRoundsTable(attachedDatabase, alias);
+  }
+}
+
+class WQRoundData extends DataClass implements Insertable<WQRoundData> {
+  final String id;
+  final String questionId;
+  final int round;
+  final int status;
+  final DateTime reviewedAt;
+  final String? note;
+  const WQRoundData(
+      {required this.id,
+      required this.questionId,
+      required this.round,
+      required this.status,
+      required this.reviewedAt,
+      this.note});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['question_id'] = Variable<String>(questionId);
+    map['round'] = Variable<int>(round);
+    map['status'] = Variable<int>(status);
+    map['reviewed_at'] = Variable<DateTime>(reviewedAt);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    return map;
+  }
+
+  WrongQuestionRoundsCompanion toCompanion(bool nullToAbsent) {
+    return WrongQuestionRoundsCompanion(
+      id: Value(id),
+      questionId: Value(questionId),
+      round: Value(round),
+      status: Value(status),
+      reviewedAt: Value(reviewedAt),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+    );
+  }
+
+  factory WQRoundData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WQRoundData(
+      id: serializer.fromJson<String>(json['id']),
+      questionId: serializer.fromJson<String>(json['questionId']),
+      round: serializer.fromJson<int>(json['round']),
+      status: serializer.fromJson<int>(json['status']),
+      reviewedAt: serializer.fromJson<DateTime>(json['reviewedAt']),
+      note: serializer.fromJson<String?>(json['note']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'questionId': serializer.toJson<String>(questionId),
+      'round': serializer.toJson<int>(round),
+      'status': serializer.toJson<int>(status),
+      'reviewedAt': serializer.toJson<DateTime>(reviewedAt),
+      'note': serializer.toJson<String?>(note),
+    };
+  }
+
+  WQRoundData copyWith(
+          {String? id,
+          String? questionId,
+          int? round,
+          int? status,
+          DateTime? reviewedAt,
+          Value<String?> note = const Value.absent()}) =>
+      WQRoundData(
+        id: id ?? this.id,
+        questionId: questionId ?? this.questionId,
+        round: round ?? this.round,
+        status: status ?? this.status,
+        reviewedAt: reviewedAt ?? this.reviewedAt,
+        note: note.present ? note.value : this.note,
+      );
+  WQRoundData copyWithCompanion(WrongQuestionRoundsCompanion data) {
+    return WQRoundData(
+      id: data.id.present ? data.id.value : this.id,
+      questionId:
+          data.questionId.present ? data.questionId.value : this.questionId,
+      round: data.round.present ? data.round.value : this.round,
+      status: data.status.present ? data.status.value : this.status,
+      reviewedAt:
+          data.reviewedAt.present ? data.reviewedAt.value : this.reviewedAt,
+      note: data.note.present ? data.note.value : this.note,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WQRoundData(')
+          ..write('id: $id, ')
+          ..write('questionId: $questionId, ')
+          ..write('round: $round, ')
+          ..write('status: $status, ')
+          ..write('reviewedAt: $reviewedAt, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, questionId, round, status, reviewedAt, note);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WQRoundData &&
+          other.id == this.id &&
+          other.questionId == this.questionId &&
+          other.round == this.round &&
+          other.status == this.status &&
+          other.reviewedAt == this.reviewedAt &&
+          other.note == this.note);
+}
+
+class WrongQuestionRoundsCompanion extends UpdateCompanion<WQRoundData> {
+  final Value<String> id;
+  final Value<String> questionId;
+  final Value<int> round;
+  final Value<int> status;
+  final Value<DateTime> reviewedAt;
+  final Value<String?> note;
+  final Value<int> rowid;
+  const WrongQuestionRoundsCompanion({
+    this.id = const Value.absent(),
+    this.questionId = const Value.absent(),
+    this.round = const Value.absent(),
+    this.status = const Value.absent(),
+    this.reviewedAt = const Value.absent(),
+    this.note = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WrongQuestionRoundsCompanion.insert({
+    required String id,
+    required String questionId,
+    required int round,
+    required int status,
+    required DateTime reviewedAt,
+    this.note = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        questionId = Value(questionId),
+        round = Value(round),
+        status = Value(status),
+        reviewedAt = Value(reviewedAt);
+  static Insertable<WQRoundData> custom({
+    Expression<String>? id,
+    Expression<String>? questionId,
+    Expression<int>? round,
+    Expression<int>? status,
+    Expression<DateTime>? reviewedAt,
+    Expression<String>? note,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (questionId != null) 'question_id': questionId,
+      if (round != null) 'round': round,
+      if (status != null) 'status': status,
+      if (reviewedAt != null) 'reviewed_at': reviewedAt,
+      if (note != null) 'note': note,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WrongQuestionRoundsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? questionId,
+      Value<int>? round,
+      Value<int>? status,
+      Value<DateTime>? reviewedAt,
+      Value<String?>? note,
+      Value<int>? rowid}) {
+    return WrongQuestionRoundsCompanion(
+      id: id ?? this.id,
+      questionId: questionId ?? this.questionId,
+      round: round ?? this.round,
+      status: status ?? this.status,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
+      note: note ?? this.note,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (round.present) {
+      map['round'] = Variable<int>(round.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<int>(status.value);
+    }
+    if (reviewedAt.present) {
+      map['reviewed_at'] = Variable<DateTime>(reviewedAt.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WrongQuestionRoundsCompanion(')
+          ..write('id: $id, ')
+          ..write('questionId: $questionId, ')
+          ..write('round: $round, ')
+          ..write('status: $status, ')
+          ..write('reviewedAt: $reviewedAt, ')
+          ..write('note: $note, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SubjectsTable subjects = $SubjectsTable(this);
   late final $SessionsTable sessions = $SessionsTable(this);
   late final $PlansTable plans = $PlansTable(this);
+  late final $WrongQuestionsTable wrongQuestions = $WrongQuestionsTable(this);
+  late final $WrongQuestionRoundsTable wrongQuestionRounds =
+      $WrongQuestionRoundsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [subjects, sessions, plans];
+      [subjects, sessions, plans, wrongQuestions, wrongQuestionRounds];
 }
 
 typedef $$SubjectsTableCreateCompanionBuilder = SubjectsCompanion Function({
@@ -2177,6 +2881,382 @@ typedef $$PlansTableProcessedTableManager = ProcessedTableManager<
     (PlanData, BaseReferences<_$AppDatabase, $PlansTable, PlanData>),
     PlanData,
     PrefetchHooks Function()>;
+typedef $$WrongQuestionsTableCreateCompanionBuilder = WrongQuestionsCompanion
+    Function({
+  required String id,
+  required String subjectId,
+  required int pageNumber,
+  required int questionNumber,
+  Value<String?> note,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$WrongQuestionsTableUpdateCompanionBuilder = WrongQuestionsCompanion
+    Function({
+  Value<String> id,
+  Value<String> subjectId,
+  Value<int> pageNumber,
+  Value<int> questionNumber,
+  Value<String?> note,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$WrongQuestionsTableFilterComposer
+    extends Composer<_$AppDatabase, $WrongQuestionsTable> {
+  $$WrongQuestionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get subjectId => $composableBuilder(
+      column: $table.subjectId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get pageNumber => $composableBuilder(
+      column: $table.pageNumber, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get questionNumber => $composableBuilder(
+      column: $table.questionNumber,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$WrongQuestionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WrongQuestionsTable> {
+  $$WrongQuestionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get subjectId => $composableBuilder(
+      column: $table.subjectId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get pageNumber => $composableBuilder(
+      column: $table.pageNumber, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get questionNumber => $composableBuilder(
+      column: $table.questionNumber,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$WrongQuestionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WrongQuestionsTable> {
+  $$WrongQuestionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get subjectId =>
+      $composableBuilder(column: $table.subjectId, builder: (column) => column);
+
+  GeneratedColumn<int> get pageNumber => $composableBuilder(
+      column: $table.pageNumber, builder: (column) => column);
+
+  GeneratedColumn<int> get questionNumber => $composableBuilder(
+      column: $table.questionNumber, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$WrongQuestionsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $WrongQuestionsTable,
+    WQData,
+    $$WrongQuestionsTableFilterComposer,
+    $$WrongQuestionsTableOrderingComposer,
+    $$WrongQuestionsTableAnnotationComposer,
+    $$WrongQuestionsTableCreateCompanionBuilder,
+    $$WrongQuestionsTableUpdateCompanionBuilder,
+    (WQData, BaseReferences<_$AppDatabase, $WrongQuestionsTable, WQData>),
+    WQData,
+    PrefetchHooks Function()> {
+  $$WrongQuestionsTableTableManager(
+      _$AppDatabase db, $WrongQuestionsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WrongQuestionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WrongQuestionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WrongQuestionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> subjectId = const Value.absent(),
+            Value<int> pageNumber = const Value.absent(),
+            Value<int> questionNumber = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              WrongQuestionsCompanion(
+            id: id,
+            subjectId: subjectId,
+            pageNumber: pageNumber,
+            questionNumber: questionNumber,
+            note: note,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String subjectId,
+            required int pageNumber,
+            required int questionNumber,
+            Value<String?> note = const Value.absent(),
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              WrongQuestionsCompanion.insert(
+            id: id,
+            subjectId: subjectId,
+            pageNumber: pageNumber,
+            questionNumber: questionNumber,
+            note: note,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$WrongQuestionsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $WrongQuestionsTable,
+    WQData,
+    $$WrongQuestionsTableFilterComposer,
+    $$WrongQuestionsTableOrderingComposer,
+    $$WrongQuestionsTableAnnotationComposer,
+    $$WrongQuestionsTableCreateCompanionBuilder,
+    $$WrongQuestionsTableUpdateCompanionBuilder,
+    (WQData, BaseReferences<_$AppDatabase, $WrongQuestionsTable, WQData>),
+    WQData,
+    PrefetchHooks Function()>;
+typedef $$WrongQuestionRoundsTableCreateCompanionBuilder
+    = WrongQuestionRoundsCompanion Function({
+  required String id,
+  required String questionId,
+  required int round,
+  required int status,
+  required DateTime reviewedAt,
+  Value<String?> note,
+  Value<int> rowid,
+});
+typedef $$WrongQuestionRoundsTableUpdateCompanionBuilder
+    = WrongQuestionRoundsCompanion Function({
+  Value<String> id,
+  Value<String> questionId,
+  Value<int> round,
+  Value<int> status,
+  Value<DateTime> reviewedAt,
+  Value<String?> note,
+  Value<int> rowid,
+});
+
+class $$WrongQuestionRoundsTableFilterComposer
+    extends Composer<_$AppDatabase, $WrongQuestionRoundsTable> {
+  $$WrongQuestionRoundsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get questionId => $composableBuilder(
+      column: $table.questionId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get round => $composableBuilder(
+      column: $table.round, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get reviewedAt => $composableBuilder(
+      column: $table.reviewedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+}
+
+class $$WrongQuestionRoundsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WrongQuestionRoundsTable> {
+  $$WrongQuestionRoundsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get questionId => $composableBuilder(
+      column: $table.questionId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get round => $composableBuilder(
+      column: $table.round, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get reviewedAt => $composableBuilder(
+      column: $table.reviewedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+}
+
+class $$WrongQuestionRoundsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WrongQuestionRoundsTable> {
+  $$WrongQuestionRoundsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get questionId => $composableBuilder(
+      column: $table.questionId, builder: (column) => column);
+
+  GeneratedColumn<int> get round =>
+      $composableBuilder(column: $table.round, builder: (column) => column);
+
+  GeneratedColumn<int> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get reviewedAt => $composableBuilder(
+      column: $table.reviewedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+}
+
+class $$WrongQuestionRoundsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $WrongQuestionRoundsTable,
+    WQRoundData,
+    $$WrongQuestionRoundsTableFilterComposer,
+    $$WrongQuestionRoundsTableOrderingComposer,
+    $$WrongQuestionRoundsTableAnnotationComposer,
+    $$WrongQuestionRoundsTableCreateCompanionBuilder,
+    $$WrongQuestionRoundsTableUpdateCompanionBuilder,
+    (
+      WQRoundData,
+      BaseReferences<_$AppDatabase, $WrongQuestionRoundsTable, WQRoundData>
+    ),
+    WQRoundData,
+    PrefetchHooks Function()> {
+  $$WrongQuestionRoundsTableTableManager(
+      _$AppDatabase db, $WrongQuestionRoundsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WrongQuestionRoundsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WrongQuestionRoundsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WrongQuestionRoundsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> questionId = const Value.absent(),
+            Value<int> round = const Value.absent(),
+            Value<int> status = const Value.absent(),
+            Value<DateTime> reviewedAt = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              WrongQuestionRoundsCompanion(
+            id: id,
+            questionId: questionId,
+            round: round,
+            status: status,
+            reviewedAt: reviewedAt,
+            note: note,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String questionId,
+            required int round,
+            required int status,
+            required DateTime reviewedAt,
+            Value<String?> note = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              WrongQuestionRoundsCompanion.insert(
+            id: id,
+            questionId: questionId,
+            round: round,
+            status: status,
+            reviewedAt: reviewedAt,
+            note: note,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$WrongQuestionRoundsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $WrongQuestionRoundsTable,
+    WQRoundData,
+    $$WrongQuestionRoundsTableFilterComposer,
+    $$WrongQuestionRoundsTableOrderingComposer,
+    $$WrongQuestionRoundsTableAnnotationComposer,
+    $$WrongQuestionRoundsTableCreateCompanionBuilder,
+    $$WrongQuestionRoundsTableUpdateCompanionBuilder,
+    (
+      WQRoundData,
+      BaseReferences<_$AppDatabase, $WrongQuestionRoundsTable, WQRoundData>
+    ),
+    WQRoundData,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2187,4 +3267,8 @@ class $AppDatabaseManager {
       $$SessionsTableTableManager(_db, _db.sessions);
   $$PlansTableTableManager get plans =>
       $$PlansTableTableManager(_db, _db.plans);
+  $$WrongQuestionsTableTableManager get wrongQuestions =>
+      $$WrongQuestionsTableTableManager(_db, _db.wrongQuestions);
+  $$WrongQuestionRoundsTableTableManager get wrongQuestionRounds =>
+      $$WrongQuestionRoundsTableTableManager(_db, _db.wrongQuestionRounds);
 }
