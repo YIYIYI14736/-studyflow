@@ -2,7 +2,7 @@
 
 > 智能学习计时与规划应用 · Flutter · Android
 
-StudyFlow 是一款专为学生和备考人群打造的学习管理工具，集**计时器、学习计划、数据统计、AI 智能规划、联网搜索**于一体，帮助你高效管理每一分钟的学习时间。
+StudyFlow 是一款专为学生和备考人群打造的学习管理工具，集**计时器、学习计划、数据统计、AI 智能规划、联网搜索、错题本、数据备份**于一体，帮助你高效管理每一分钟的学习时间。
 
 ---
 
@@ -24,6 +24,13 @@ StudyFlow 是一款专为学生和备考人群打造的学习管理工具，集*
 - **本周**：每日时长柱状图
 - **本月**：学习热力日历
 
+### 📝 错题本
+- 记录错题，支持题目拍照、科目分类、难度标记
+- 错题列表：按科目/时间/难度筛选
+- 统计总览：错题分布饼图、趋势柱状图、知识点分析
+- 支持多轮复习记录，追踪掌握度变化
+- AI 辅助分析薄弱环节，给出针对性建议
+
 ### 🤖 AI 学习助手
 - 流式实时输出，告别等待
 - **自动识别计划请求**：发送备考需求，AI 自动判断并生成可导入的结构化计划
@@ -31,6 +38,7 @@ StudyFlow 是一款专为学生和备考人群打造的学习管理工具，集*
 - 学习数据智能分析，给出改进建议
 - 语义记忆系统：AI 记住你的学习偏好和历史
 - 支持多模型：DeepSeek V3.2 / Doubao / Kimi / GLM / MiniMax 等
+- 集成错题分析：AI 根据错题记录识别薄弱知识点
 
 ### 🔍 联网搜索
 - **AI 回答前自动搜索网络**：获取最新信息，避免过时或错误回答
@@ -41,12 +49,21 @@ StudyFlow 是一款专为学生和备考人群打造的学习管理工具，集*
 - 支持多种搜索提供商：Tavily（推荐）/ Bing / 自定义
 - AI 聊天页面一键开关联网搜索
 
+### 💾 数据备份与恢复
+- 一键导出全量数据为 JSON 备份文件
+- 备份包含：科目、学习计划、学习记录、错题本、AI 记忆、设置
+- 时间戳命名，支持多份备份并存
+- 从备份文件一键恢复，换机无忧
+- Android SAF 文件选择器，自由选择保存/导入位置
+
 ### ⚙️ 个性化设置
 - 深色模式
 - 番茄钟时长自定义
 - 支持多家 AI 服务商（火山方舟、DeepSeek、阿里云、智谱、Moonshot 等）
 - 自定义 API Key 和模型
 - 联网搜索开关 & 搜索 API Key 配置
+- 数据备份手动触发 & 自动备份开关
+- 通知提醒开关
 
 ---
 
@@ -63,6 +80,7 @@ StudyFlow 是一款专为学生和备考人群打造的学习管理工具，集*
 | 联网搜索 | Tavily / Bing Search API |
 | 语义记忆 | Embedding 向量检索 |
 | 持久化 | SharedPreferences |
+| 文件备份 | path_provider + Android SAF |
 
 ---
 
@@ -80,8 +98,8 @@ StudyFlow 是一款专为学生和备考人群打造的学习管理工具，集*
 
 ```bash
 # 克隆项目
-git clone https://github.com/YIYIYI14736/-studyflow.git
-cd -studyflow
+git clone https://github.com/YIYIYI14736/studyflow.git
+cd studyflow
 
 # 安装依赖
 flutter pub get
@@ -141,31 +159,32 @@ flutter run
 
 ```
 lib/
-├── main.dart                    # 入口
+├── main.dart                        # 入口
 ├── config/
-│   └── api_keys.dart            # API Key 配置（git skip-worktree 保护）
+│   └── api_keys.dart                # API Key 配置（git skip-worktree 保护）
 ├── models/
-│   └── models.dart              # 数据模型（Subject / StudyPlan / StudySession 等）
+│   └── models.dart                  # 数据模型（Subject / StudyPlan / StudySession / WrongQuestion 等）
 ├── database/
-│   └── database.dart            # Drift 数据库定义
+│   ├── database.dart                # Drift 数据库定义
+│   └── database.g.dart               # 自动生成代码
 ├── providers/
-│   ├── providers.dart           # 全局状态（科目 / 计划 / 记录 / 设置）
-│   └── timer_provider.dart      # 计时器状态机
+│   ├── providers.dart               # 全局状态（科目 / 计划 / 记录 / 设置）
+│   └── timer_provider.dart          # 计时器状态机
 ├── screens/
-│   ├── home_screen.dart         # 首页仪表盘
-│   ├── timer_screen.dart        # 计时器页面
-│   ├── plans_screen.dart        # 学习计划页面
-│   ├── stats_screen.dart        # 统计页面
-│   ├── ai_screen.dart           # AI 对话页面（含联网搜索开关）
-│   └── settings_screen.dart     # 设置页面（含搜索配置）
+│   ├── home_screen.dart             # 首页仪表盘
+│   ├── timer_screen.dart            # 计时器页面
+│   ├── plans_screen.dart            # 学习计划页面
+│   ├── stats_screen.dart            # 统计页面
+│   ├── ai_screen.dart               # AI 对话页面（含联网搜索开关）
+│   ├── settings_screen.dart         # 设置页面（含搜索配置 & 备份）
+│   └── wrong_questions_screen.dart  # 错题本页面（错题列表 / 统计总览）
 ├── services/
-│   ├── ai_service.dart          # AI 请求 & 流式输出 & 计划提取 & 联网搜索集成
-│   ├── web_search_service.dart  # 联网搜索服务（Tavily / Bing / 自定义）
-│   ├── memory_service.dart      # Embedding 语义记忆
-│   └── notification_service.dart # 本地通知
+│   ├── ai_service.dart              # AI 请求 & 流式输出 & 计划提取 & 联网搜索集成
+│   ├── memory_service.dart          # Embedding 语义记忆
+│   ├── notification_service.dart    # 本地通知
+│   └── data_backup_service.dart     # 数据备份与恢复
 └── widgets/
-    ├── study_card.dart          # 统计卡片组件
-    └── subject_selector.dart    # 科目选择器组件
+    └── subject_selector.dart        # 科目选择器组件
 ```
 
 ---
@@ -182,6 +201,22 @@ WebSearchService.search(query)  ← 调用 Tavily/Bing API
 AI 基于搜索结果 + 记忆上下文回答
     ↓
 回答中引用来源，信息更准确
+```
+
+---
+
+## 数据备份工作流程
+
+```
+备份触发（手动 / 定时）
+    ↓
+导出数据：科目 + 计划 + 记录 + 错题 + AI记忆 + 设置
+    ↓
+生成 JSON 文件 → timestamp 命名
+    ↓
+用户选择保存位置（SAF 文件选择器）
+    ↓
+恢复时：读取 JSON → 解析 → 写入数据库 + SharedPreferences
 ```
 
 ---

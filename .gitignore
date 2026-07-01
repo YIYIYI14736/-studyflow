@@ -49,3 +49,10 @@ app.*.map.json
 
 # Claude AI local config
 .claude/
+
+# Personal screenshots and images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
