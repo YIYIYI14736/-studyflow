@@ -25,20 +25,23 @@ StudyFlow 是一款专为学生和备考人群打造的学习管理工具，集*
 - **本月**：学习热力日历
 
 ### 📝 错题本
-- 记录错题，支持题目拍照、科目分类、难度标记
-- 错题列表：按科目/时间/难度筛选
-- 统计总览：错题分布饼图、趋势柱状图、知识点分析
-- 支持多轮复习记录，追踪掌握度变化
-- AI 辅助分析薄弱环节，给出针对性建议
+- 记录错题：按**科目、页码、题号**结构化归档
+- 错题列表：按科目标签、页码、题号排序，一目了然
+- **多轮复习追踪**：每道错题可添加多轮复习记录，每轮标记「已掌握 / 模糊 / 仍错」状态，颜色区分
+- **统计总览**：
+  - 掌握率圆环（全局进度一览）
+  - 科目分布饼图（哪些科目错题最多）
+  - 状态统计（已掌握 vs 仍错比例）
+  - 轮次通过率趋势（复习效果追踪）
+- AI 辅助：错题数据可纳入 AI 分析上下文，给出针对性复习建议
 
-### 🤖 AI 学习助手
+### 🤖 AI 学习助手（基于 DeepSeek）
 - 流式实时输出，告别等待
 - **自动识别计划请求**：发送备考需求，AI 自动判断并生成可导入的结构化计划
 - **计划一键导入**：AI 生成的学习计划直接导入到计划列表
 - 学习数据智能分析，给出改进建议
 - 语义记忆系统：AI 记住你的学习偏好和历史
-- 支持多模型：DeepSeek V3.2 / Doubao / Kimi / GLM / MiniMax 等
-- 集成错题分析：AI 根据错题记录识别薄弱知识点
+- 默认模型：`deepseek-v4-flash`（快速高性价比），可切换 `deepseek-v4-pro`（强推理）
 
 ### 🔍 联网搜索
 - **AI 回答前自动搜索网络**：获取最新信息，避免过时或错误回答
@@ -59,10 +62,9 @@ StudyFlow 是一款专为学生和备考人群打造的学习管理工具，集*
 ### ⚙️ 个性化设置
 - 深色模式
 - 番茄钟时长自定义
-- 支持多家 AI 服务商（火山方舟、DeepSeek、阿里云、智谱、Moonshot 等）
-- 自定义 API Key 和模型
+- **DeepSeek AI 配置**：自定义 API Key、Base URL、模型（deepseek-v4-flash / deepseek-v4-pro）
 - 联网搜索开关 & 搜索 API Key 配置
-- 数据备份手动触发 & 自动备份开关
+- 数据备份手动触发
 - 通知提醒开关
 
 ---
@@ -76,7 +78,7 @@ StudyFlow 是一款专为学生和备考人群打造的学习管理工具，集*
 | 本地数据库 | Drift (SQLite) |
 | 网络请求 | Dio（支持 SSE 流式） |
 | 图表 | fl_chart |
-| AI 接入 | OpenAI 兼容接口 |
+| AI 接入 | DeepSeek（OpenAI 兼容接口） |
 | 联网搜索 | Tavily / Bing Search API |
 | 语义记忆 | Embedding 向量检索 |
 | 持久化 | SharedPreferences |
@@ -113,22 +115,15 @@ flutter run
 
 ### AI 功能配置
 
-应用默认内置了火山方舟 API，开箱即用。如需使用自己的 Key：
+应用基于 **DeepSeek OpenAI 兼容接口**，默认模型为 `deepseek-v4-flash`。内置 API Key 可开箱即用，如需使用自己的 Key：
 
-1. 打开应用 → 右上角「设置」
-2. 进入「AI 配置」
-3. 填入你的 API Key 和对应的 Base URL
-4. 选择模型（推荐 DeepSeek V3.2）
+1. 打开应用 → 右上角「设置」→「DeepSeek AI 配置」
+2. 填入你的 API Key（默认 Base URL: `https://api.deepseek.com`）
+3. 选择可用模型：
+   - `deepseek-v4-flash`（默认，快速版，高性价比）
+   - `deepseek-v4-pro`（专业版，更强推理能力）
 
-支持的服务商：
-
-| 服务商 | Base URL |
-|--------|----------|
-| 火山方舟（默认） | `https://ark.cn-beijing.volces.com/api/coding/v3` |
-| DeepSeek | `https://api.deepseek.com` |
-| 阿里云通义 | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-| 智谱 AI | `https://open.bigmodel.cn/api/paas/v4` |
-| Moonshot | `https://api.moonshot.cn/v1` |
+> 服务采用 OpenAI Compatible 接口协议，也可通过修改 Base URL 指向其他兼容服务。
 
 ### 联网搜索配置
 
@@ -163,7 +158,7 @@ lib/
 ├── config/
 │   └── api_keys.dart                # API Key 配置（git skip-worktree 保护）
 ├── models/
-│   └── models.dart                  # 数据模型（Subject / StudyPlan / StudySession / WrongQuestion 等）
+│   └── models.dart                  # 数据模型
 ├── database/
 │   ├── database.dart                # Drift 数据库定义
 │   └── database.g.dart               # 自动生成代码
@@ -176,10 +171,10 @@ lib/
 │   ├── plans_screen.dart            # 学习计划页面
 │   ├── stats_screen.dart            # 统计页面
 │   ├── ai_screen.dart               # AI 对话页面（含联网搜索开关）
-│   ├── settings_screen.dart         # 设置页面（含搜索配置 & 备份）
-│   └── wrong_questions_screen.dart  # 错题本页面（错题列表 / 统计总览）
+│   ├── settings_screen.dart         # 设置页面（DeepSeek 配置 & 备份）
+│   └── wrong_questions_screen.dart  # 错题本（错题列表 / 统计总览）
 ├── services/
-│   ├── ai_service.dart              # AI 请求 & 流式输出 & 计划提取 & 联网搜索集成
+│   ├── ai_service.dart              # AI 请求 & 流式输出 & 计划提取 & 联网搜索
 │   ├── memory_service.dart          # Embedding 语义记忆
 │   ├── notification_service.dart    # 本地通知
 │   └── data_backup_service.dart     # 数据备份与恢复
@@ -189,18 +184,18 @@ lib/
 
 ---
 
-## 联网搜索工作流程
+## AI 工作流程
 
 ```
 用户发送消息
     ↓
-WebSearchService.search(query)  ← 调用 Tavily/Bing API
+联网搜索（可选）→ WebSearchService.search(query)
     ↓
-搜索结果格式化 → 注入 AI 系统提示词
+搜索结果 + 记忆上下文 → 注入 AI 系统提示词
     ↓
-AI 基于搜索结果 + 记忆上下文回答
+DeepSeek API（streaming）→ 流式文本输出
     ↓
-回答中引用来源，信息更准确
+回答中引用来源 | 识别到计划请求 → 生成结构化计划 → 一键导入
 ```
 
 ---
@@ -208,15 +203,15 @@ AI 基于搜索结果 + 记忆上下文回答
 ## 数据备份工作流程
 
 ```
-备份触发（手动 / 定时）
+备份触发（手动）
     ↓
-导出数据：科目 + 计划 + 记录 + 错题 + AI记忆 + 设置
+导出：科目 + 计划 + 记录 + 错题 + AI记忆 + 设置
     ↓
 生成 JSON 文件 → timestamp 命名
     ↓
 用户选择保存位置（SAF 文件选择器）
     ↓
-恢复时：读取 JSON → 解析 → 写入数据库 + SharedPreferences
+恢复：读取 JSON → 写入数据库 + SharedPreferences
 ```
 
 ---
