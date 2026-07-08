@@ -14,24 +14,18 @@ class DataBackupService {
 
   static const int backupVersion = 1;
   static const String _settingsKey = 'app_settings';
-  static const String _memoriesKey = 'ai_memories';
 
   Future<Map<String, dynamic>> exportData() async {
     final prefs = await SharedPreferences.getInstance();
     final settings = _decodeObject(prefs.getString(_settingsKey));
-    final memories = _decodeList(prefs.getString(_memoriesKey));
 
     return {
       'version': backupVersion,
       'createdAt': DateTime.now().toIso8601String(),
       'appSettings':
           settings == null ? null : AppSettings.fromJson(settings).toJson(),
-      'aiMemories': memories,
       'database': {
         'subjects': (await _db.select(_db.subjects).get())
-            .map((row) => row.toJson())
-            .toList(),
-        'sessions': (await _db.select(_db.sessions).get())
             .map((row) => row.toJson())
             .toList(),
         'plans': (await _db.select(_db.plans).get())
@@ -112,10 +106,6 @@ class DataBackupService {
         (json) => _db.into(_db.subjects).insert(SubjectData.fromJson(json)),
       );
       await _insertRows(
-        dbMap['sessions'],
-        (json) => _db.into(_db.sessions).insert(SessionData.fromJson(json)),
-      );
-      await _insertRows(
         dbMap['plans'],
         (json) => _db.into(_db.plans).insert(PlanData.fromJson(json)),
       );
@@ -133,7 +123,6 @@ class DataBackupService {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_settingsKey);
-    await prefs.remove(_memoriesKey);
 
     final settings = backup['appSettings'];
     if (settings is Map) {
@@ -141,18 +130,12 @@ class DataBackupService {
           AppSettings.fromJson(Map<String, dynamic>.from(settings));
       await prefs.setString(_settingsKey, jsonEncode(normalized.toJson()));
     }
-
-    final memories = backup['aiMemories'];
-    if (memories is List) {
-      await prefs.setString(_memoriesKey, jsonEncode(memories));
-    }
   }
 
   Future<void> clearAllData() async {
     await _db.transaction(_clearDatabaseTables);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_settingsKey);
-    await prefs.remove(_memoriesKey);
   }
 
   Future<void> _insertRows(
@@ -171,7 +154,6 @@ class DataBackupService {
     await _db.delete(_db.wrongQuestionRounds).go();
     await _db.delete(_db.wrongQuestions).go();
     await _db.delete(_db.plans).go();
-    await _db.delete(_db.sessions).go();
     await _db.delete(_db.subjects).go();
   }
 
@@ -188,11 +170,5 @@ class DataBackupService {
     if (raw == null || raw.trim().isEmpty) return null;
     final decoded = jsonDecode(raw);
     return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
-  }
-
-  List<dynamic> _decodeList(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return const [];
-    final decoded = jsonDecode(raw);
-    return decoded is List ? decoded : const [];
   }
 }

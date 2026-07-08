@@ -1,11 +1,6 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:studyflow/models/models.dart';
 import 'package:studyflow/providers/providers.dart';
-import 'package:studyflow/config/api_keys.dart';
 import 'package:studyflow/main.dart';
 import 'package:studyflow/services/data_backup_service.dart';
 
@@ -17,29 +12,9 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  late TextEditingController _apiKeyController;
-  late TextEditingController _baseUrlController;
-  late TextEditingController _modelController;
-  late TextEditingController _searchApiKeyController;
-
   @override
   void initState() {
     super.initState();
-    final settings = ref.read(settingsProvider);
-    _apiKeyController = TextEditingController(text: settings.aiApiKey ?? '');
-    _baseUrlController = TextEditingController(text: settings.aiBaseUrl ?? '');
-    _modelController = TextEditingController(text: settings.aiModel);
-    _searchApiKeyController =
-        TextEditingController(text: settings.searchApiKey ?? '');
-  }
-
-  @override
-  void dispose() {
-    _apiKeyController.dispose();
-    _baseUrlController.dispose();
-    _modelController.dispose();
-    _searchApiKeyController.dispose();
-    super.dispose();
   }
 
   @override
@@ -50,106 +25,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(title: const Text('设置')),
       body: ListView(
         children: [
-          _buildSectionHeader('DeepSeek AI 配置'),
-          ListTile(
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                gradient:
-                    const LinearGradient(colors: AppColors.primaryGradient),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.key, color: Colors.white, size: 18),
-            ),
-            title: const Text('API Key'),
-            subtitle: Text(
-              settings.aiApiKey != null && settings.aiApiKey!.isNotEmpty
-                  ? '已配置'
-                  : '未配置',
-            ),
-            onTap: () => _showEditDialog(
-                'DeepSeek API Key',
-                _apiKeyController,
-                (value) =>
-                    ref.read(settingsProvider.notifier).setApiKey(value)),
-          ),
-          ListTile(
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                gradient:
-                    const LinearGradient(colors: AppColors.accentGradient),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.model_training,
-                  color: Colors.white, size: 18),
-            ),
-            title: const Text('模型'),
-            subtitle: Text(settings.aiModel),
-            onTap: () => _showModelSelector(settings.aiModel),
-          ),
-          ListTile(
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F0EC),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.link, color: Color(0xFFFF6B35), size: 18),
-            ),
-            title: const Text('API Base URL'),
-            subtitle: Text(settings.aiBaseUrl ?? 'https://api.deepseek.com'),
-            onTap: () => _showBaseUrlInput(settings.aiBaseUrl),
-          ),
-          const Divider(),
-          _buildSectionHeader('联网搜索'),
-          SwitchListTile(
-            secondary: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: AppColors.warmGradient),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.travel_explore,
-                  color: Colors.white, size: 18),
-            ),
-            title: const Text('启用联网搜索'),
-            subtitle: const Text('AI 回答前先搜索网络获取最新信息'),
-            value: settings.webSearchEnabled,
-            onChanged: (value) {
-              ref.read(settingsProvider.notifier).setWebSearchEnabled(value);
-              if (value &&
-                  (settings.searchApiKey == null ||
-                      settings.searchApiKey!.isEmpty)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('联网搜索需要配置搜索 API Key'),
-                      duration: Duration(seconds: 4)),
-                );
-              }
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.search, color: Color(0xFFA0A0A0)),
-            title: const Text('搜索 API Key'),
-            subtitle: Text(
-              settings.searchApiKey != null && settings.searchApiKey!.isNotEmpty
-                  ? (settings.searchApiKey == kBuiltInSearchApiKey
-                      ? '已配置（内置 Key）'
-                      : '已配置（自定义 Key）')
-                  : '未配置',
-            ),
-            onTap: () => _showEditDialog(
-                '搜索 API Key',
-                _searchApiKeyController,
-                (value) =>
-                    ref.read(settingsProvider.notifier).setSearchApiKey(value)),
-          ),
-          const Divider(),
           _buildSectionHeader('番茄钟设置'),
           ListTile(
             leading: Container(
@@ -282,122 +157,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 letterSpacing: 0.5)),
       );
 
-  void _showEditDialog(String title, TextEditingController controller,
-      Function(String?) onSave) {
-    final originalText = controller.text;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('编辑 $title'),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-              labelText: title,
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-          obscureText: title.contains('Key'),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () {
-                controller.text = originalText;
-                Navigator.pop(context);
-              },
-              child: const Text('取消')),
-          FilledButton(
-            onPressed: () {
-              onSave(controller.text.isEmpty ? null : controller.text);
-              Navigator.pop(context);
-            },
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showBaseUrlInput(String? currentUrl) {
-    final controller =
-        TextEditingController(text: currentUrl ?? 'https://api.deepseek.com');
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('API Base URL'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'https://api.deepseek.com',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text('取消')),
-          FilledButton(
-            onPressed: () {
-              final url = controller.text.trim();
-              ref
-                  .read(settingsProvider.notifier)
-                  .setBaseUrl(url.isNotEmpty ? url : null);
-              _baseUrlController.text = url;
-              Navigator.pop(context);
-            },
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showModelSelector(String currentModel) {
-    final presets = [
-      {'name': 'DeepSeek V4 Flash (快速版)', 'value': 'deepseek-v4-flash'},
-      {'name': 'DeepSeek V4 Pro (专业版)', 'value': 'deepseek-v4-pro'},
-      {'name': '自定义模型', 'value': 'custom'},
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('选择模型'),
-        content: RadioGroup<String>(
-          groupValue: currentModel,
-          onChanged: (value) {
-            if (value == 'custom') {
-              Navigator.pop(context);
-              _showEditDialog(
-                '模型名称',
-                _modelController,
-                (v) => ref
-                    .read(settingsProvider.notifier)
-                    .setModel(v ?? 'deepseek-v4-flash'),
-              );
-            } else if (value != null) {
-              ref.read(settingsProvider.notifier).setModel(value);
-              _modelController.text = value;
-              Navigator.pop(context);
-            }
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: presets.map((preset) {
-              return RadioListTile<String>(
-                title:
-                    Text(preset['name']!, style: const TextStyle(fontSize: 15)),
-                value: preset['value']!,
-                activeColor: AppColors.primary,
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
   DataBackupService get _backupService =>
       DataBackupService(ref.read(databaseProvider));
 
@@ -434,7 +193,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final file = await _backupService.restoreLatestBackupFile();
       if (!mounted) return;
       _refreshDataProviders();
-      _syncControllers(await _loadStoredSettings());
       await _showResultDialog(
         title: '恢复完成',
         message: '已从备份恢复：\n${file.path}',
@@ -457,7 +215,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await _backupService.clearAllData();
       if (!mounted) return;
       _refreshDataProviders();
-      _syncControllers(await _loadStoredSettings());
       _showSnackBar('所有数据已清除');
     } catch (e) {
       if (!mounted) return;
@@ -513,23 +270,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _refreshDataProviders() {
     ref.invalidate(settingsProvider);
     ref.invalidate(subjectsProvider);
-    ref.invalidate(sessionsProvider);
     ref.invalidate(plansProvider);
     ref.invalidate(wrongQuestionProvider);
-  }
-
-  void _syncControllers(AppSettings settings) {
-    _apiKeyController.text = settings.aiApiKey ?? '';
-    _baseUrlController.text = settings.aiBaseUrl ?? '';
-    _modelController.text = settings.aiModel;
-    _searchApiKeyController.text = settings.searchApiKey ?? '';
-  }
-
-  Future<AppSettings> _loadStoredSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('app_settings');
-    if (raw == null || raw.trim().isEmpty) return AppSettings();
-    return AppSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 
   void _showSnackBar(String message) {

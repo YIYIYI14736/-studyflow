@@ -1,12 +1,9 @@
 import 'package:uuid/uuid.dart';
-import 'package:studyflow/config/api_keys.dart';
 
 T _safeEnumFromIndex<T>(List<T> values, int index, T fallback) {
   if (index >= 0 && index < values.length) return values[index];
   return fallback;
 }
-
-enum TimerMode { pomodoro, countdown, stopwatch }
 
 enum PlanStatus { pending, inProgress, completed }
 
@@ -186,82 +183,6 @@ class WrongQuestionRound {
       );
 }
 
-class StudySession {
-  final String id;
-  final String subjectId;
-  final String? subjectName;
-  final DateTime startTime;
-  final DateTime endTime;
-  final int durationSeconds;
-  final TimerMode mode;
-  final String? planId;
-  final DateTime createdAt;
-
-  StudySession({
-    String? id,
-    required this.subjectId,
-    this.subjectName,
-    required this.startTime,
-    required this.endTime,
-    required this.durationSeconds,
-    required this.mode,
-    this.planId,
-    DateTime? createdAt,
-  })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now();
-
-  int get durationMinutes => durationSeconds ~/ 60;
-
-  StudySession copyWith({
-    String? id,
-    String? subjectId,
-    String? subjectName,
-    DateTime? startTime,
-    DateTime? endTime,
-    int? durationSeconds,
-    TimerMode? mode,
-    String? planId,
-    DateTime? createdAt,
-  }) {
-    return StudySession(
-      id: id ?? this.id,
-      subjectId: subjectId ?? this.subjectId,
-      subjectName: subjectName ?? this.subjectName,
-      startTime: startTime ?? this.startTime,
-      endTime: endTime ?? this.endTime,
-      durationSeconds: durationSeconds ?? this.durationSeconds,
-      mode: mode ?? this.mode,
-      planId: planId ?? this.planId,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'subjectId': subjectId,
-        'subjectName': subjectName,
-        'startTime': startTime.toIso8601String(),
-        'endTime': endTime.toIso8601String(),
-        'durationSeconds': durationSeconds,
-        'mode': mode.index,
-        'planId': planId,
-        'createdAt': createdAt.toIso8601String(),
-      };
-
-  factory StudySession.fromJson(Map<String, dynamic> json) => StudySession(
-        id: json['id'] as String,
-        subjectId: json['subjectId'] as String,
-        subjectName: json['subjectName'] as String?,
-        startTime: DateTime.parse(json['startTime'] as String),
-        endTime: DateTime.parse(json['endTime'] as String),
-        durationSeconds: json['durationSeconds'] as int,
-        mode: _safeEnumFromIndex(
-            TimerMode.values, json['mode'] as int, TimerMode.pomodoro),
-        planId: json['planId'] as String?,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-      );
-}
-
 class SubTask {
   final String id;
   final String title;
@@ -431,171 +352,44 @@ class StudyPlan {
       );
 }
 
-const Object _unsetSettingValue = Object();
-
 class AppSettings {
-  final String? aiApiKey;
-  final String? aiBaseUrl;
-  final String aiModel;
   final bool notificationsEnabled;
   final int pomodoroWorkMinutes;
   final int pomodoroBreakMinutes;
   final bool isDarkMode;
-  final bool webSearchEnabled;
-  final String? searchApiKey;
-  final String searchProvider; // 'tavily', 'bing', 'custom'
 
   AppSettings({
-    this.aiApiKey = kBuiltInApiKey,
-    this.aiBaseUrl = kBuiltInBaseUrl,
-    this.aiModel = kBuiltInModel,
     this.notificationsEnabled = true,
     this.pomodoroWorkMinutes = 25,
     this.pomodoroBreakMinutes = 5,
     this.isDarkMode = false,
-    this.webSearchEnabled = false,
-    this.searchApiKey = kBuiltInSearchApiKey,
-    this.searchProvider = kBuiltInSearchProvider,
   });
 
   AppSettings copyWith({
-    Object? aiApiKey = _unsetSettingValue,
-    Object? aiBaseUrl = _unsetSettingValue,
-    String? aiModel,
     bool? notificationsEnabled,
     int? pomodoroWorkMinutes,
     int? pomodoroBreakMinutes,
     bool? isDarkMode,
-    bool? webSearchEnabled,
-    String? searchApiKey,
-    String? searchProvider,
   }) {
     return AppSettings(
-      aiApiKey: identical(aiApiKey, _unsetSettingValue)
-          ? this.aiApiKey
-          : aiApiKey as String?,
-      aiBaseUrl: identical(aiBaseUrl, _unsetSettingValue)
-          ? this.aiBaseUrl
-          : aiBaseUrl as String?,
-      aiModel: aiModel ?? this.aiModel,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       pomodoroWorkMinutes: pomodoroWorkMinutes ?? this.pomodoroWorkMinutes,
       pomodoroBreakMinutes: pomodoroBreakMinutes ?? this.pomodoroBreakMinutes,
       isDarkMode: isDarkMode ?? this.isDarkMode,
-      webSearchEnabled: webSearchEnabled ?? this.webSearchEnabled,
-      searchApiKey: searchApiKey ?? this.searchApiKey,
-      searchProvider: searchProvider ?? this.searchProvider,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'aiApiKey': aiApiKey,
-        'aiBaseUrl': aiBaseUrl,
-        'aiModel': aiModel,
         'notificationsEnabled': notificationsEnabled,
         'pomodoroWorkMinutes': pomodoroWorkMinutes,
         'pomodoroBreakMinutes': pomodoroBreakMinutes,
         'isDarkMode': isDarkMode,
-        'webSearchEnabled': webSearchEnabled,
-        'searchApiKey': searchApiKey,
-        'searchProvider': searchProvider,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
-        aiApiKey: json['aiApiKey'] as String? ??
-            json['openaiApiKey'] as String? ??
-            kBuiltInApiKey,
-        aiBaseUrl: json['aiBaseUrl'] as String? ??
-            json['openaiBaseUrl'] as String? ??
-            kBuiltInBaseUrl,
-        aiModel: json['aiModel'] as String? ??
-            json['openaiModel'] as String? ??
-            kBuiltInModel,
         notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
         pomodoroWorkMinutes: json['pomodoroWorkMinutes'] as int? ?? 25,
         pomodoroBreakMinutes: json['pomodoroBreakMinutes'] as int? ?? 5,
         isDarkMode: json['isDarkMode'] as bool? ?? false,
-        webSearchEnabled: json['webSearchEnabled'] as bool? ?? false,
-        searchApiKey: json['searchApiKey'] as String? ?? kBuiltInSearchApiKey,
-        searchProvider:
-            json['searchProvider'] as String? ?? kBuiltInSearchProvider,
-      );
-}
-
-class ChatMessage {
-  final String id;
-  final String content;
-  final bool isUser;
-  final DateTime createdAt;
-  final List<AIPlanSuggestion>? planSuggestions; // AI 生成的计划建议
-
-  ChatMessage({
-    String? id,
-    required this.content,
-    required this.isUser,
-    DateTime? createdAt,
-    this.planSuggestions,
-  })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now();
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'content': content,
-        'isUser': isUser,
-        'createdAt': createdAt.toIso8601String(),
-        'planSuggestions': planSuggestions?.map((p) => p.toJson()).toList(),
-      };
-
-  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
-        id: json['id'] as String,
-        content: json['content'] as String,
-        isUser: json['isUser'] as bool,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-        planSuggestions: json['planSuggestions'] != null
-            ? (json['planSuggestions'] as List)
-                .map(
-                    (e) => AIPlanSuggestion.fromJson(e as Map<String, dynamic>))
-                .toList()
-            : null,
-      );
-}
-
-// AI 生成的计划建议
-class AIPlanSuggestion {
-  final String title;
-  final String? description;
-  final String subjectName;
-  final int targetMinutes;
-  final DateTime? deadline;
-  final String priority; // 'low', 'medium', 'high'
-
-  AIPlanSuggestion({
-    required this.title,
-    this.description,
-    required this.subjectName,
-    required this.targetMinutes,
-    this.deadline,
-    this.priority = 'medium',
-  });
-
-  Map<String, dynamic> toJson() => {
-        'title': title,
-        'description': description,
-        'subjectName': subjectName,
-        'targetMinutes': targetMinutes,
-        'deadline': deadline?.toIso8601String(),
-        'priority': priority,
-      };
-
-  factory AIPlanSuggestion.fromJson(Map<String, dynamic> json) =>
-      AIPlanSuggestion(
-        title: json['title'] as String,
-        description: json['description'] as String?,
-        subjectName: json['subjectName'] as String,
-        targetMinutes: json['targetMinutes'] as int,
-        deadline: json['deadline'] != null
-            ? DateTime.parse(json['deadline'] as String)
-            : null,
-        priority: json['priority'] as String? ?? 'medium',
       );
 }

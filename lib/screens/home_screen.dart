@@ -1,12 +1,7 @@
-﻿import 'dart:math';
-import 'dart:ui' as ui;
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:studyflow/providers/providers.dart';
-import 'package:studyflow/screens/timer_screen.dart';
 import 'package:studyflow/screens/plans_screen.dart';
-import 'package:studyflow/screens/stats_screen.dart';
-import 'package:studyflow/screens/ai_screen.dart';
 import 'package:studyflow/screens/settings_screen.dart';
 import 'package:studyflow/screens/wrong_questions_screen.dart';
 import 'package:studyflow/models/models.dart';
@@ -27,51 +22,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final screens = const [
       _DashboardContent(),
-      TimerScreen(),
       PlansScreen(),
-      StatsScreen(),
-      AIScreen(),
       WrongQuestionsScreen(),
     ];
 
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(index: _currentIndex, children: screens),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        selectedFontSize: 11,
-        unselectedFontSize: 11,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '首页'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.timer_outlined),
-              activeIcon: Icon(Icons.timer),
-              label: '计时'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined),
-              activeIcon: Icon(Icons.calendar_today),
-              label: '计划'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart_outlined),
-              activeIcon: Icon(Icons.bar_chart),
-              label: '统计'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.psychology_outlined),
-              activeIcon: Icon(Icons.psychology),
-              label: 'AI'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.assignment_outlined),
-              activeIcon: Icon(Icons.assignment),
-              label: '错题'),
-        ],
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          color: bgColor,
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) => setState(() => _currentIndex = index),
+            type: BottomNavigationBarType.fixed,
+            selectedFontSize: 11,
+            unselectedFontSize: 11,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '首页'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.calendar_today_outlined),
+                  activeIcon: Icon(Icons.calendar_today),
+                  label: '计划'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.assignment_outlined),
+                  activeIcon: Icon(Icons.assignment),
+                  label: '错题'),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
 // ============================================================
-//  首页 Dashboard — 亮色 Apple 风格
+//  首页 Dashboard — 计划摘要
 // ============================================================
 class _DashboardContent extends ConsumerWidget {
   const _DashboardContent();
@@ -81,20 +70,22 @@ class _DashboardContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subjects = ref.watch(subjectsProvider);
+    final plans = ref.watch(plansProvider);
     final today = DateTime.now();
-    ref.watch(sessionsProvider); // 建立监听关系
-    final distribution = ref
-        .read(sessionsProvider.notifier)
-        .getSubjectDistributionForDate(today);
-    final todayTotal =
-        ref.read(sessionsProvider.notifier).getTotalMinutesForDate(today);
+
+    final activePlans = plans.where((p) => p.status != PlanStatus.completed).toList();
+    final completedPlans =
+        plans.where((p) => p.status == PlanStatus.completed).toList();
+    final overallProgress = plans.isEmpty
+        ? 0.0
+        : plans.map((p) => p.progress).fold(0.0, (a, b) => a + b) / plans.length;
 
     return Scaffold(
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // --- 顶部 ---
-            SliverToBoxAdapter(
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top)),
+          // --- 顶部 ---
+          SliverToBoxAdapter(
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -138,12 +129,14 @@ class _DashboardContent extends ConsumerWidget {
               ),
             ),
 
-            // --- 今日总时长卡片 ---
+            // --- 计划进度卡片 ---
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _TodayCard(
-                  totalMinutes: todayTotal,
+                child: _OverviewCard(
+                  activeCount: activePlans.length,
+                  completedCount: completedPlans.length,
+                  overallProgress: overallProgress,
                   subjectCount: subjects.length,
                 ),
               ),
@@ -151,75 +144,52 @@ class _DashboardContent extends ConsumerWidget {
 
             const SliverToBoxAdapter(child: SizedBox(height: 28)),
 
-            // --- 科目分布饼图 ---
-            if (distribution.isNotEmpty) ...[
+            // --- 科目 + 进度条 ---
+            if (subjects.isNotEmpty) ...[
               SliverToBoxAdapter(
-                child: _SectionHeader(
-                  title: '科目分布',
-                  action: '${distribution.length} 门',
-                ),
+                child: _SectionHeader(title: '科目', action: '${subjects.length} 门'),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
-              SliverToBoxAdapter(
-                child: _DonutChart(
-                  distribution: distribution,
-                  colors: _subjectColors,
-                  totalMinutes: todayTotal,
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 28)),
-            ],
-
-            // --- 今日课程列表 ---
-            SliverToBoxAdapter(
-              child: _SectionHeader(title: '今日课程'),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-            if (subjects.isEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _EmptyCard(
-                      onAdd: () => _showAddSubjectDialog(context, ref)),
-                ),
-              )
-            else
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final subject = subjects[index];
-                    final subjectMinutes = distribution[subject.name] ?? 0;
-                    final progress =
-                        todayTotal > 0 ? subjectMinutes / todayTotal : 0.0;
+                    final subjectPlans =
+                        activePlans.where((p) => p.subjectId == subject.id).toList();
+                    final progress = subjectPlans.isEmpty
+                        ? 0.0
+                        : subjectPlans
+                                .map((p) => p.progress)
+                                .fold(0.0, (a, b) => a + b) /
+                            subjectPlans.length;
                     final color = _subjectColors[index % _subjectColors.length];
 
                     return _SubjectRow(
                       subject: subject,
-                      minutes: subjectMinutes,
+                      meta: '${subjectPlans.length} 个计划',
                       progress: progress,
                       color: color,
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TimerScreen(
-                              initialSubjectId: subject.id,
-                              initialSubjectName: subject.name,
-                            ),
-                          ),
-                        );
+                        // 切换到「计划」Tab — 由于是底部导航，这里直接跳到计划
+                        // 但 _Dashboard 在导航壳内无法直接改 index，改为空操作即可
                       },
                     );
                   },
                   childCount: subjects.length,
                 ),
               ),
+            ] else
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _EmptyCard(
+                      onAdd: () => _showAddSubjectDialog(context, ref)),
+                ),
+              ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
-      ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
@@ -373,20 +343,22 @@ class _SectionHeader extends StatelessWidget {
 // ============================================================
 //  今日总时长卡片
 // ============================================================
-class _TodayCard extends StatelessWidget {
-  final int totalMinutes;
+class _OverviewCard extends StatelessWidget {
+  final int activeCount;
+  final int completedCount;
+  final double overallProgress;
   final int subjectCount;
 
-  const _TodayCard({
-    required this.totalMinutes,
+  const _OverviewCard({
+    required this.activeCount,
+    required this.completedCount,
+    required this.overallProgress,
     required this.subjectCount,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hours = totalMinutes ~/ 60;
-    final minutes = totalMinutes % 60;
-
+    final progressPercent = (overallProgress * 100).round();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -420,9 +392,9 @@ class _TodayCard extends StatelessWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.timer_outlined, size: 14, color: Colors.white),
+                    Icon(Icons.auto_awesome, size: 14, color: Colors.white),
                     SizedBox(width: 4),
-                    Text('今日学习',
+                    Text('总体进度',
                         style: TextStyle(
                             fontSize: 12,
                             color: Colors.white,
@@ -442,7 +414,7 @@ class _TodayCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                totalMinutes > 0 ? '$hours' : '0',
+                '$progressPercent',
                 style: const TextStyle(
                     fontSize: 56,
                     fontWeight: FontWeight.w700,
@@ -453,40 +425,37 @@ class _TodayCard extends StatelessWidget {
               const SizedBox(width: 4),
               const Padding(
                 padding: EdgeInsets.only(bottom: 6),
-                child: Text('小时',
+                child: Text('%',
                     style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w500)),
-              ),
-              const SizedBox(width: 4),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text('$minutes 分钟',
-                    style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 22,
                         color: Colors.white70,
                         fontWeight: FontWeight.w500)),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Container(
-            height: 4,
+            height: 6,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(3),
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: (totalMinutes / 480).clamp(0.0, 1.0),
+              widthFactor: overallProgress.clamp(0.0, 1.0),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            '进行中 $activeCount · 已完成 $completedCount',
+            style: TextStyle(
+                fontSize: 13, color: Colors.white.withValues(alpha: 0.8)),
           ),
         ],
       ),
@@ -495,201 +464,25 @@ class _TodayCard extends StatelessWidget {
 }
 
 // ============================================================
-//  环形图 + 图例
-// ============================================================
-class _DonutChart extends StatelessWidget {
-  final Map<String, int> distribution;
-  final List<Color> colors;
-  final int totalMinutes;
-
-  const _DonutChart({
-    required this.distribution,
-    required this.colors,
-    required this.totalMinutes,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final total = distribution.values.fold<int>(0, (a, b) => a + b);
-    if (total == 0) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 130,
-              height: 130,
-              child: CustomPaint(
-                painter: _RingPainter(
-                  data: distribution.entries.map((e) {
-                    final idx = distribution.keys.toList().indexOf(e.key);
-                    return _RingSegment(
-                      value: e.value.toDouble(),
-                      color: colors[idx % colors.length],
-                    );
-                  }).toList(),
-                  centerText: '${distribution.length}门',
-                  centerTextColor: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: distribution.entries.map((e) {
-                  final idx = distribution.keys.toList().indexOf(e.key);
-                  final color = colors[idx % colors.length];
-                  final pct = (e.value / total * 100).toStringAsFixed(0);
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            e.key,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(
-                          '$pct%',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RingSegment {
-  final double value;
-  final Color color;
-  _RingSegment({required this.value, required this.color});
-}
-
-class _RingPainter extends CustomPainter {
-  final List<_RingSegment> data;
-  final String centerText;
-  final Color centerTextColor;
-
-  _RingPainter({required this.data, required this.centerText, required this.centerTextColor});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final total = data.fold<double>(0, (a, b) => a + b.value);
-    if (total == 0) {
-      return;
-    }
-
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = min(size.width, size.height) / 2;
-    const strokeWidth = 16.0;
-    final arcRect =
-        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
-
-    double startAngle = -pi / 2;
-
-    for (final seg in data) {
-      final sweepAngle = (seg.value / total) * 2 * pi;
-      final paint = Paint()
-        ..color = seg.color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round;
-
-      canvas.drawArc(arcRect, startAngle, sweepAngle, false, paint);
-      startAngle += sweepAngle;
-    }
-
-    // 中心文字
-    final tp = TextPainter(
-      text: TextSpan(
-        text: centerText,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          color: centerTextColor,
-        ),
-      ),
-      textDirection: ui.TextDirection.ltr,
-    )..layout();
-    tp.paint(
-      canvas,
-      Offset(center.dx - tp.width / 2, center.dy - tp.height / 2),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _RingPainter oldDelegate) {
-    if (oldDelegate.data.length != data.length) {
-      return true;
-    }
-    for (int i = 0; i < data.length; i++) {
-      if (oldDelegate.data[i].value != data[i].value ||
-          oldDelegate.data[i].color != data[i].color) {
-        return true;
-      }
-    }
-    return oldDelegate.centerText != centerText;
-  }
-}
-
-// ============================================================
 //  科目行
 // ============================================================
 class _SubjectRow extends StatelessWidget {
   final Subject subject;
-  final int minutes;
+  final String meta;
   final double progress;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _SubjectRow({
     required this.subject,
-    required this.minutes,
+    this.meta = '',
     required this.progress,
     required this.color,
-    required this.onTap,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hours = minutes ~/ 60;
-    final min = minutes % 60;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
       child: Material(
@@ -765,25 +558,23 @@ class _SubjectRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // 时长
+                // 右侧：元信息 + 百分比
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      minutes > 0 ? '${hours}h ${min}m' : '0m',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: minutes > 0
-                              ? Theme.of(context).colorScheme.onSurface
-                              : Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-                    if (minutes > 0)
+                    if (meta.isNotEmpty)
+                      Text(meta,
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
+                    if (meta.isNotEmpty)
                       Text('${(progress * 100).toStringAsFixed(0)}%',
                           style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 13,
                               color: color,
-                              fontWeight: FontWeight.w500)),
+                              fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(width: 2),

@@ -35,18 +35,6 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
     await prefs.setString('app_settings', jsonEncode(newSettings.toJson()));
   }
 
-  Future<void> setApiKey(String? key) async {
-    await updateSettings(state.copyWith(aiApiKey: key));
-  }
-
-  Future<void> setBaseUrl(String? url) async {
-    await updateSettings(state.copyWith(aiBaseUrl: url));
-  }
-
-  Future<void> setModel(String model) async {
-    await updateSettings(state.copyWith(aiModel: model));
-  }
-
   Future<void> setNotificationsEnabled(bool enabled) async {
     await updateSettings(state.copyWith(notificationsEnabled: enabled));
   }
@@ -61,18 +49,6 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
 
   Future<void> setDarkMode(bool isDark) async {
     await updateSettings(state.copyWith(isDarkMode: isDark));
-  }
-
-  Future<void> setWebSearchEnabled(bool enabled) async {
-    await updateSettings(state.copyWith(webSearchEnabled: enabled));
-  }
-
-  Future<void> setSearchApiKey(String? key) async {
-    await updateSettings(state.copyWith(searchApiKey: key));
-  }
-
-  Future<void> setSearchProvider(String provider) async {
-    await updateSettings(state.copyWith(searchProvider: provider));
   }
 }
 
@@ -128,85 +104,9 @@ class SubjectsNotifier extends StateNotifier<List<Subject>> {
 
   Future<void> deleteSubject(String id) async {
     await (_db.delete(_db.subjects)..where((t) => t.id.equals(id))).go();
-    // 级联删除关联的 sessions 和 plans
-    await (_db.delete(_db.sessions)..where((t) => t.subjectId.equals(id))).go();
+    // 级联删除关联的 plans
     await (_db.delete(_db.plans)..where((t) => t.subjectId.equals(id))).go();
     state = state.where((s) => s.id != id).toList();
-  }
-}
-
-final sessionsProvider =
-    StateNotifierProvider<SessionsNotifier, List<StudySession>>((ref) {
-  return SessionsNotifier(ref.watch(databaseProvider));
-});
-
-class SessionsNotifier extends StateNotifier<List<StudySession>> {
-  final AppDatabase _db;
-
-  SessionsNotifier(this._db) : super([]) {
-    _loadSessions();
-  }
-
-  Future<void> _loadSessions() async {
-    final data = await _db.select(_db.sessions).get();
-    state = data
-        .map((d) => StudySession(
-              id: d.id,
-              subjectId: d.subjectId,
-              subjectName: d.subjectName,
-              startTime: d.startTime,
-              endTime: d.endTime,
-              durationSeconds: d.durationSeconds,
-              mode: TimerMode.values[d.mode],
-              planId: d.planId,
-              createdAt: d.createdAt,
-            ))
-        .toList();
-  }
-
-  Future<void> addSession(StudySession session) async {
-    await _db.into(_db.sessions).insert(
-          SessionsCompanion.insert(
-            id: session.id,
-            subjectId: session.subjectId,
-            subjectName: Value(session.subjectName),
-            startTime: session.startTime,
-            endTime: session.endTime,
-            durationSeconds: session.durationSeconds,
-            mode: session.mode.index,
-            planId: Value(session.planId),
-            createdAt: session.createdAt,
-          ),
-        );
-    state = [...state, session];
-  }
-
-  Future<void> deleteSession(String id) async {
-    await (_db.delete(_db.sessions)..where((t) => t.id.equals(id))).go();
-    state = state.where((s) => s.id != id).toList();
-  }
-
-  List<StudySession> getSessionsForDate(DateTime date) {
-    return state.where((s) {
-      final sessionDate =
-          DateTime(s.startTime.year, s.startTime.month, s.startTime.day);
-      return sessionDate == DateTime(date.year, date.month, date.day);
-    }).toList();
-  }
-
-  int getTotalMinutesForDate(DateTime date) {
-    return getSessionsForDate(date)
-        .fold(0, (sum, s) => sum + s.durationMinutes);
-  }
-
-  Map<String, int> getSubjectDistributionForDate(DateTime date) {
-    final sessions = getSessionsForDate(date);
-    final Map<String, int> distribution = {};
-    for (final session in sessions) {
-      final name = session.subjectName ?? 'Unknown';
-      distribution[name] = (distribution[name] ?? 0) + session.durationMinutes;
-    }
-    return distribution;
   }
 }
 

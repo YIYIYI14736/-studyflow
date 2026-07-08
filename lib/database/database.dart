@@ -18,22 +18,6 @@ class Subjects extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DataClassName('SessionData')
-class Sessions extends Table {
-  TextColumn get id => text()();
-  TextColumn get subjectId => text()();
-  TextColumn get subjectName => text().nullable()();
-  DateTimeColumn get startTime => dateTime()();
-  DateTimeColumn get endTime => dateTime()();
-  IntColumn get durationSeconds => integer()();
-  IntColumn get mode => integer()();
-  TextColumn get planId => text().nullable()();
-  DateTimeColumn get createdAt => dateTime()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
 @DataClassName('PlanData')
 class Plans extends Table {
   TextColumn get id => text()();
@@ -86,7 +70,6 @@ class WrongQuestionRounds extends Table {
 
 @DriftDatabase(tables: [
   Subjects,
-  Sessions,
   Plans,
   WrongQuestions,
   WrongQuestionRounds,
@@ -95,7 +78,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -106,6 +89,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.createTable(wrongQuestions);
             await m.createTable(wrongQuestionRounds);
+          }
+          if (from < 3) {
+            await m.deleteTable('sessions');
           }
         },
       );
