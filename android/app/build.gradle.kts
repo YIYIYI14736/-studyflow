@@ -37,6 +37,25 @@ android {
     }
 }
 
+// Gradle DSL-safe: 组装完成后把 release APK 重命名为 StudyFlow.apk
+afterEvaluate {
+    tasks.matching { it.name == "assembleRelease" }.configureEach {
+        doLast {
+            val outDir = File(project.buildDir, "outputs/apk/release")
+            if (outDir.exists()) {
+                val src = outDir.listFiles()?.firstOrNull {
+                    it.name.endsWith(".apk") && it.name.contains("-release")
+                }
+                if (src != null && src.exists()) {
+                    val target = File(outDir, "StudyFlow.apk")
+                    src.copyTo(target, overwrite = true)
+                    println("APK renamed -> ${target.name}")
+                }
+            }
+        }
+    }
+}
+
 flutter {
     source = "../.."
 }
