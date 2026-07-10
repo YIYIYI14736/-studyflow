@@ -12,6 +12,8 @@ void main() {
     systemNavigationBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
     systemNavigationBarIconBrightness: Brightness.dark,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarContrastEnforced: false,
   ));
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -151,6 +153,22 @@ class MyApp extends ConsumerWidget {
       theme: buildTheme(false),
       darkTheme: buildTheme(true),
       themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final iconBrightness = isDark ? Brightness.light : Brightness.dark;
+
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarDividerColor: Colors.transparent,
+            statusBarIconBrightness: iconBrightness,
+            systemNavigationBarIconBrightness: iconBrightness,
+            systemNavigationBarContrastEnforced: false,
+          ),
+          child: child!,
+        );
+      },
       home: const HomeScreen(),
     );
   }

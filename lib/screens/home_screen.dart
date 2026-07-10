@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:studyflow/providers/providers.dart';
 import 'package:studyflow/screens/plans_screen.dart';
@@ -26,23 +26,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       WrongQuestionsScreen(),
     ];
 
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final bottomBarColor = Theme.of(context).colorScheme.surface;
 
     return Scaffold(
-      extendBody: true,
       body: IndexedStack(index: _currentIndex, children: screens),
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          color: bgColor,
+      bottomNavigationBar: ColoredBox(
+        color: bottomBarColor,
+        child: SafeArea(
+          top: false,
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: (index) => setState(() => _currentIndex = index),
             type: BottomNavigationBarType.fixed,
             selectedFontSize: 11,
             unselectedFontSize: 11,
-            backgroundColor: Theme.of(context).colorScheme.surface,
+            backgroundColor: bottomBarColor,
             items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: '首页'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.home_rounded), label: '首页'),
               BottomNavigationBarItem(
                   icon: Icon(Icons.calendar_today_outlined),
                   activeIcon: Icon(Icons.calendar_today),
@@ -73,123 +74,125 @@ class _DashboardContent extends ConsumerWidget {
     final plans = ref.watch(plansProvider);
     final today = DateTime.now();
 
-    final activePlans = plans.where((p) => p.status != PlanStatus.completed).toList();
+    final activePlans =
+        plans.where((p) => p.status != PlanStatus.completed).toList();
     final completedPlans =
         plans.where((p) => p.status == PlanStatus.completed).toList();
     final overallProgress = plans.isEmpty
         ? 0.0
-        : plans.map((p) => p.progress).fold(0.0, (a, b) => a + b) / plans.length;
+        : plans.map((p) => p.progress).fold(0.0, (a, b) => a + b) /
+            plans.length;
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverPadding(padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top)),
+          SliverPadding(
+              padding:
+                  EdgeInsets.only(top: MediaQuery.of(context).padding.top)),
           // --- 顶部 ---
           SliverToBoxAdapter(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          DateFormat('M月d日 EEEE').format(today),
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'StudyFlow',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.settings_outlined,
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant),
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const SettingsScreen()),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        DateFormat('M月d日 EEEE').format(today),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'StudyFlow',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.settings_outlined,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+          ),
 
-            // --- 计划进度卡片 ---
+          // --- 计划进度卡片 ---
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _OverviewCard(
+                activeCount: activePlans.length,
+                completedCount: completedPlans.length,
+                overallProgress: overallProgress,
+                subjectCount: subjects.length,
+              ),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 28)),
+
+          // --- 科目 + 进度条 ---
+          if (subjects.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child:
+                  _SectionHeader(title: '科目', action: '${subjects.length} 门'),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final subject = subjects[index];
+                  final subjectPlans = activePlans
+                      .where((p) => p.subjectId == subject.id)
+                      .toList();
+                  final progress = subjectPlans.isEmpty
+                      ? 0.0
+                      : subjectPlans
+                              .map((p) => p.progress)
+                              .fold(0.0, (a, b) => a + b) /
+                          subjectPlans.length;
+                  final color = _subjectColors[index % _subjectColors.length];
+
+                  return _SubjectRow(
+                    subject: subject,
+                    meta: '${subjectPlans.length} 个计划',
+                    progress: progress,
+                    color: color,
+                    onTap: () {
+                      // 切换到「计划」Tab — 由于是底部导航，这里直接跳到计划
+                      // 但 _Dashboard 在导航壳内无法直接改 index，改为空操作即可
+                    },
+                  );
+                },
+                childCount: subjects.length,
+              ),
+            ),
+          ] else
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _OverviewCard(
-                  activeCount: activePlans.length,
-                  completedCount: completedPlans.length,
-                  overallProgress: overallProgress,
-                  subjectCount: subjects.length,
-                ),
+                child: _EmptyCard(
+                    onAdd: () => _showAddSubjectDialog(context, ref)),
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 28)),
-
-            // --- 科目 + 进度条 ---
-            if (subjects.isNotEmpty) ...[
-              SliverToBoxAdapter(
-                child: _SectionHeader(title: '科目', action: '${subjects.length} 门'),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final subject = subjects[index];
-                    final subjectPlans =
-                        activePlans.where((p) => p.subjectId == subject.id).toList();
-                    final progress = subjectPlans.isEmpty
-                        ? 0.0
-                        : subjectPlans
-                                .map((p) => p.progress)
-                                .fold(0.0, (a, b) => a + b) /
-                            subjectPlans.length;
-                    final color = _subjectColors[index % _subjectColors.length];
-
-                    return _SubjectRow(
-                      subject: subject,
-                      meta: '${subjectPlans.length} 个计划',
-                      progress: progress,
-                      color: color,
-                      onTap: () {
-                        // 切换到「计划」Tab — 由于是底部导航，这里直接跳到计划
-                        // 但 _Dashboard 在导航壳内无法直接改 index，改为空操作即可
-                      },
-                    );
-                  },
-                  childCount: subjects.length,
-                ),
-              ),
-            ] else
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _EmptyCard(
-                      onAdd: () => _showAddSubjectDialog(context, ref)),
-                ),
-              ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
-        ),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
+      ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
@@ -264,7 +267,8 @@ class _DashboardContent extends ConsumerWidget {
                             : null,
                         border: isSelected
                             ? Border.all(
-                                color: Theme.of(context).colorScheme.onSurface, width: 2.5)
+                                color: Theme.of(context).colorScheme.onSurface,
+                                width: 2.5)
                             : null,
                       ),
                     ),
@@ -608,7 +612,11 @@ class _EmptyCard extends StatelessWidget {
       child: Column(
         children: [
           Icon(Icons.school_outlined,
-              size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15)),
+              size: 48,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.15)),
           const SizedBox(height: 16),
           Text(
             '还没有添加科目',
@@ -642,4 +650,3 @@ class _EmptyCard extends StatelessWidget {
     );
   }
 }
-

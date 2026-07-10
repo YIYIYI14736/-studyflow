@@ -1,7 +1,7 @@
 name: studyflow
 description: "StudyFlow - 智能学习计时与规划应用"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.5.0

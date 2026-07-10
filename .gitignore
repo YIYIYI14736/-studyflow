@@ -56,3 +56,14 @@ app.*.map.json
 *.jpeg
 *.gif
 *.webp
+
+# Keep app artwork and Android launcher/splash resources versioned.
+!assets/icon_512.png
+!assets/images/app_icon.png
+!android/app/src/main/res/mipmap-*/ic_launcher.png
+!android/app/src/main/res/mipmap-*/ic_launcher_round.png
+!android/app/src/main/res/mipmap-anydpi-v26/*.png
+!android/app/src/main/res/drawable-nodpi/ic_launcher_artwork.png
+
+# Original source artwork (large raw image, not needed in repo)
+"ChatGPT Image "*
